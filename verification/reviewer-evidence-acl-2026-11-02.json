@@ -1,0 +1,62 @@
+{
+  "dateUtc": "2026-11-02",
+  "scope": "Isolated source and synthetic accounts/documents/databases only",
+  "baselineTree": "739c31d8366eddc40c39e745c270085d082ce3ef",
+  "baseline": {
+    "tests": 159,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 60.238
+  },
+  "regressionBefore": {
+    "tests": 8,
+    "failures": 3,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 15.124
+  },
+  "regressionAfter": {
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 15.821
+  },
+  "final": {
+    "tests": 167,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 76.926
+  },
+  "checks": {
+    "ruff": "PASS",
+    "mockApprovalResponseLossRecovery": "PASS",
+    "syntheticSmoke": "8/8 NOT A BENCHMARK",
+    "evaluationContractExample": "PASS NOT MODEL PERFORMANCE",
+    "requiredPackageFiles": "24 present",
+    "independentReadOnlyReview": "No additional important finding in the fix"
+  },
+  "currentWindowsObservation": "Past WinError10014 not reproduced in ordinary host pytest; sandbox temp/socket limitations recorded separately",
+  "notRun": [
+    "WPF UI",
+    "installer acceptance",
+    "Store/public deployment",
+    "GitHub CI",
+    "external benchmark"
+  ],
+  "gitCommit": "Verified GitHub noreply identity configured only in this repository; baseline and ACL change are preserved separately in local Git history",
+  "remote": "Public publication approved only for KIMJINWOO0548/OpsPilot; see repository for live remote status",
+  "files": [
+    {
+      "path": "src/opspilot_x/api.py",
+      "sha256": "1660240c9249418bd42007fd38ead66bc9a4a060c2787799f8390482177b1dec"
+    },
+    {
+      "path": "tests/test_proposal_evidence_acl.py",
+      "sha256": "8a338aafed328784737edd7563264e0464d3d11deb39ae095aecf5d6e79fca4e"
+    }
+  ],
+  "baselineCommit": "4d3ec68b407acf297aa557ca99b0b5412ad44555"
+}

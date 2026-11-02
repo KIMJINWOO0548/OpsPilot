@@ -4,6 +4,7 @@
 
 | ID | Gate | 작업 | 의존성 | 현재 상태 | Done 정의 |
 |---|---|---|---|---|---|
+| A04 | G2/G5 | 현재 검토자 문서 ACL 재검증 | A03 | ✅ 격리 사본 | 인용·승인·최초 실행 결함3개 RED→GREEN. 삭제·시점 만료·독립 승인·영수증 복구 포함 새8개/전체167개 통과. [기록](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md) |
 | R00 | G0 | 연구/코드/라이선스 비교표 재검증 | 없음 | ◐ | 8종 공식 commit·코드 LICENSE·범위 기록; 데이터/weights 권리·명령 실행/재현 미확인 |
 | R01 | G0 | 독창성 가설/실패 조건 사전 등록 | R00 | ◐ | collision matrix와 R1~R5·단순화 조건 기록; 실제 B2/B3 대조로 novelty 검증은 미완료 |
 | D01 | G1 | 데이터 사양+출처+split manifest | R01 | ◐ | 평가 실행에 원문 hash·group/ID split·근접중복·holdout guard 연결; 30개 합성 예시만 있고 독립 정답/실자료 미확보 |

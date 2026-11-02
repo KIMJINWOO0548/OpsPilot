@@ -266,7 +266,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 "SELECT receipt_id FROM work_orders WHERE proposal_id=?", (proposal_id,)
             ).fetchone()
             stored_request = AnalyzeRequest.model_validate_json(row["request_json"])
-            snapshot = evaluate_authorized(stored_request)
+            snapshot = evaluate_authorized(stored_request.model_copy(update={"actor": actor}))
             citations = snapshot.citations if _fingerprint(stored_request, snapshot) == row["fingerprint"] else []
             return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
                     "owner_user": row["owner_user"], "asset_id": stored_request.asset_id,
@@ -287,10 +287,12 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             if body.expected_hash != row["fingerprint"]:
                 raise HTTPException(409, "Approval snapshot mismatch")
             request = AnalyzeRequest.model_validate_json(row["request_json"])
-            live = evaluate_authorized(request)
+            # Apply caller ACL before retrieval; retain the original request for fingerprint checks.
+            review_request = request.model_copy(update={"actor": actor})
+            live = evaluate_authorized(review_request)
             if (row["action"] != live.recommended_action
                     or _fingerprint(request, live) != row["fingerprint"]
-                    or _latest_evidence_changed(request, live)):
+                    or _latest_evidence_changed(review_request, live)):
                 db.execute("UPDATE proposals SET state='EXPIRED' WHERE id=?", (proposal_id,))
                 log(db, proposal_id, "EVIDENCE_CHANGED", body.actor.user_id)
                 db.commit()
@@ -319,10 +321,11 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                                  (key,)).fetchone()
             if receipt is None:
                 request = AnalyzeRequest.model_validate_json(row["request_json"])
-                live = evaluate_authorized(request)
+                review_request = request.model_copy(update={"actor": actor})
+                live = evaluate_authorized(review_request)
                 if (row["action"] != live.recommended_action
                     or _fingerprint(request, live) != row["fingerprint"]
-                    or _latest_evidence_changed(request, live)):
+                    or _latest_evidence_changed(review_request, live)):
                     db.execute("UPDATE proposals SET state='EXPIRED' WHERE id=?", (proposal_id,))
                     log(db, proposal_id, "EVIDENCE_CHANGED", body.actor.user_id)
                     db.commit()

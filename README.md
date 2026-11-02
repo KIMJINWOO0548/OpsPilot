@@ -6,6 +6,8 @@
 
 > **배포 준비 중인 단일 인스턴스 포트폴리오 앱**입니다. 실제 LLM, Hybrid RAG, NLI, PostgreSQL/pgvector, LangGraph, OIDC, 외부 벤치마크는 아직 없습니다. 합성 근거와 결정적 정책을 사용하며 실제 작업은 mock입니다. G0/G1 연구 수용·외부 배포 검증·95점 달성을 선언하지 않습니다. 기본 접속은 loopback으로 제한합니다.
 
+2026-11-02 격리 사본: 제안 상세·승인·최초 실행을 현재 검토자의 문서 ACL로 재검증하도록 수정했습니다. 새 회귀3실패/5통과→8통과, 전체 Windows pytest167통과입니다. 과거10014는 이번 일반 Windows 검사에서 재현되지 않았으며 WPF·설치기·출시 수용은 별도입니다. [수정·검증과 한계](docs/safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 원본·사용자 DB는 보존했습니다. 자체 코드의 라이선스는 아직 지정하지 않았으며 외부 모델·실제 회사 자료는 포함하지 않습니다.
+
 2026-10-20 개발: [8종 원천 검토](docs/research/prior_art_matrix.csv), [G1 원문·분할·holdout 및 평가 CLI](docs/evaluation/EXPERIMENT_RUNBOOK.md), [30개 합성 라벨 예시](evaluation/examples/contract_v1/README.md)를 추가했습니다. 저장된 prediction을 비교하는 도구이며 실제 B0~B4 모델 실행·외부 성능 검증은 아직 없습니다.
 
 2026-10-23 현재: Compose 서비스는 **Healthy**이고, 같은 이미지의 임시 DB에서 실제 Chrome으로 로그인→현재 근거·타임라인→작성자 승인 잠금→독립 승인→mock 응답 유실·영수증 복구를 확인했습니다. 엔지니어 권한의 충돌·과거 분석도 초안을 차단했습니다. [화면과 QA](docs/design/CONSOLE_QA.md), [현재 검증 기록](verification/reboot-final-2026-10-23.json)을 확인하세요. 검증용 계정·컨테이너는 정리했고 서비스 volume은 변경하지 않았습니다.

@@ -1,5 +1,7 @@
 # 위협 모델과 릴리스 조건 (2026-10-21)
 
+2026-11-02: 제안 상세·승인·최초 실행이 저장 작성자의 문서 ACL을 재사용하던 결함을 임시 DB로 재현하고 현재 principal의 SQL 선필터·최신 근거 재검증으로 수정했다. fingerprint·독립 승인·기존 영수증 복구는 유지한다. [새8개/전체167개 검증과 한계](REVIEWER_EVIDENCE_ACL_2026-11-02.md). 운영 전체 보안 보증·공개 배포 수용은 아니다.
+
 ## 현 구현의 명시적인 보안 결함 (회피하지 말 것)
 1. **서버 계정 인증:** PBKDF2 password hash·opaque session hash·HttpOnly/SameSite cookie·CSRF·8시간 만료·logout·로그인 시도 제한·계정 비활성화·세션 폐기 CLI를 구현했다. JSON actor 대신 서버 users의 principal을 사용한다. OIDC/SSO·암호 변경/재활성화·MFA·분산 rate limit·독립 침투 검증은 없다.
 2. **SQLite 데모:** 스토어와 모의 업무 API가 같은 DB/프로세스에 있음. 진정한 외부 네트워크 응답 유실과 distributed saga/outbox 테스트 없음.

@@ -1,5 +1,9 @@
 # Dev / Research Work Log
 
+## 2026-11-02 — 현재 검토자의 문서 ACL
+
+원본 제품/실제 DB를 보존한 격리 사본에서 제안 상세·승인·최초 실행의 작성자 ACL 재사용을 수정했다. 새 회귀3실패/5통과→8통과, 전체 pytest159→167통과. Ruff, mock smoke, 합성8개, eval_compare 계약 예제, 필수24파일 검사 통과. 일반 Windows 검사에서 과거10014는 재현되지 않았다. 샌드박스 임시폴더/소켓 실패는 별도 기록하며 보안 설정은 바꾸지 않았다. [실행 명령·증거·제약](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 처음에는 Git identity 부재로 tree를 보존했고, 후속 승인으로 확인된 기존 GitHub noreply 작성자를 저장소 로컬에만 사용해 기준선/수정 커밋을 분리한다. 사용자 공개 승인은 OpsPilot GitHub 소스에 한정되며 앱 배포는 하지 않는다.
+
 | 날짜 | 작업 | 명령 및 결과 | 한계/다음 단계 |
 |---|---|---|---|
 | 2026-10-19 | AI 구현 킷 생성: 결정적 EIE+FastAPI+SQLite(mock), 합성 타임라인, 승인·멱등성, 브라우저 시연 | `pytest -q`: 23 passed; `smoke_demo.py`: E2E pass; `eval_smoke.py`: 합성 8/8 (외부 평가 아님) | 실제 학습모델/Hybrid RAG/기업인증/외부평가 없음 |

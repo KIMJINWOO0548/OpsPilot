@@ -2,6 +2,8 @@
 
 > 이 표에서 `작동`은 로컬 제한 범위에만 적용됩니다. 95점 달성 증거가 아닙니다.
 
+**2026-11-02 격리 사본:** A04/OP02의 검토자 문서 ACL 결함을 재현·수정했다. 새8개/전체167개 Windows pytest, Ruff·mock E2E·합성8개·평가 계약 예제·필수파일 검사 통과. 과거10014는 일반 Windows 검사에서 재현되지 않았고 샌드박스 소켓 제한과 구별한다. WPF/설치기·출시·GitHub CI·연구 게이트는 미검증이다. [증거/한계](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 아래 표와 이전 기록은10월23일 이력이다.
+
 | Gate | 상태 | 확인 가능한 결과 | 부족한 것 |
 |---|---|---|---|
 | G0 선행연구 | 부분 검토 | [8종 고정 commit·코드 LICENSE·재현 범위](research/prior_art_matrix.csv), [B2/B3/B4 가설 경계](research/NOVELTY_COLLISION_MATRIX.md) | 데이터/가중치 자산 이용 권리, 실제 baseline 재현, 독창성 가설의 실험 검증 |
