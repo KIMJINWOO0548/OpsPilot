@@ -6,6 +6,8 @@
 
 > **배포 준비 중인 단일 인스턴스 포트폴리오 앱**입니다. 실제 LLM, Hybrid RAG, NLI, PostgreSQL/pgvector, LangGraph, OIDC, 외부 벤치마크는 아직 없습니다. 합성 근거와 결정적 정책을 사용하며 실제 작업은 mock입니다. G0/G1 연구 수용·외부 배포 검증·95점 달성을 선언하지 않습니다. 기본 접속은 loopback으로 제한합니다.
 
+2026-11-02 클라우드 개선: 승인함이 현재 권한·근거의 검토 가능 상태를 표시하고, 검토 불가 시 승인·최초 실행을 잠급니다. 영수증 복구는 유지하며 실패 후 목록/상세 상태를 함께 갱신합니다. Linux169 tests·frontend5 tests·실제 Chromium 정상/차단/복구 검증을 통과했습니다. [변경 전후 화면·한계](docs/design/REVIEW_READINESS_2026-11-02.md). Windows WPF·설치기는 이번 검증 범위가 아닙니다.
+
 2026-11-02 격리 사본: 제안 상세·승인·최초 실행을 현재 검토자의 문서 ACL로 재검증하도록 수정했습니다. 새 회귀3실패/5통과→8통과, 전체 Windows pytest167통과입니다. 과거10014는 이번 일반 Windows 검사에서 재현되지 않았으며 WPF·설치기·출시 수용은 별도입니다. [수정·검증과 한계](docs/safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 원본·사용자 DB는 보존했습니다. 자체 코드의 라이선스는 아직 지정하지 않았으며 외부 모델·실제 회사 자료는 포함하지 않습니다.
 
 2026-10-20 개발: [8종 원천 검토](docs/research/prior_art_matrix.csv), [G1 원문·분할·holdout 및 평가 CLI](docs/evaluation/EXPERIMENT_RUNBOOK.md), [30개 합성 라벨 예시](evaluation/examples/contract_v1/README.md)를 추가했습니다. 저장된 prediction을 비교하는 도구이며 실제 B0~B4 모델 실행·외부 성능 검증은 아직 없습니다.

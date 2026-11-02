@@ -79,6 +79,7 @@ def test_detail_filters_before_evaluation_using_current_principal(review_case, m
     monkeypatch.setattr(api, "evaluate", evaluate_visible)
     response = client.get(endpoint(proposal))
     assert response.status_code == 200
+    assert response.json()["evidence_reviewable"] is False
     assert response.json()["citations"] == []
     assert_no_hidden_metadata(response, source)
     assert seen and all(actor == "approver-1" and source.evidence_id not in ids
@@ -115,6 +116,10 @@ def test_changed_evidence_blocks_review_and_first_execution(
                 return (cutoff + timedelta(minutes=1)).astimezone(tz)
 
         monkeypatch.setattr(api, "datetime", Later)
+    detail = client.get(endpoint(proposal))
+    assert detail.status_code == 200
+    assert detail.json()["state"] == ("APPROVED" if stage == "execute" else "PENDING_APPROVAL")
+    assert detail.json()["evidence_reviewable"] is False
     response = (decision(client, proposal) if stage == "decision" else
                 client.post(endpoint(proposal) + "/execute", json={}))
     assert response.status_code == 409
@@ -128,6 +133,7 @@ def test_visible_sources_preserve_independent_approval_and_receipt_recovery(revi
     assert decision(client, proposal).status_code == 403
     login(client, "approver-1")
     detail = client.get(endpoint(proposal)).json()
+    assert detail["evidence_reviewable"] is True
     assert detail["fingerprint"] == proposal["fingerprint"]
     assert [item["evidence_id"] for item in detail["citations"]] == [source.evidence_id]
     assert decision(client, proposal).status_code == 200
@@ -135,9 +141,30 @@ def test_visible_sources_preserve_independent_approval_and_receipt_recovery(revi
     assert lost.json() == {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
     # Receipt recovery must not repeat an external write after document ACL changes.
     restrict_reviewer(path, source)
+    unavailable = client.get(endpoint(proposal))
+    assert unavailable.json()["state"] == "UNKNOWN_RECONCILE"
+    assert unavailable.json()["evidence_reviewable"] is False
+    assert unavailable.json()["citations"] == []
+    assert_no_hidden_metadata(unavailable, source)
     recovered = client.post(endpoint(proposal) + "/reconcile", json={})
     retry = client.post(endpoint(proposal) + "/execute", json={})
     assert recovered.status_code == retry.status_code == 200
     assert recovered.json()["receipt_id"] == retry.json()["receipt_id"]
     with closing(sqlite3.connect(path)) as db:
         assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("already_approved", [False, True])
+def test_detail_rejects_stored_action_tamper_before_mutation(review_case, already_approved):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    if already_approved:
+        assert decision(client, proposal).status_code == 200
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("UPDATE proposals SET action=? WHERE id=?",
+                   ("unapproved_action", proposal["proposal_id"]))
+    detail = client.get(endpoint(proposal))
+    assert detail.status_code == 200
+    assert detail.json()["state"] == ("APPROVED" if already_approved else "PENDING_APPROVAL")
+    assert detail.json()["evidence_reviewable"] is False
+    assert_no_work_orders(path)

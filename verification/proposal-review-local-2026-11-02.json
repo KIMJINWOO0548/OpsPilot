@@ -1,0 +1,79 @@
+{
+  "base_commit": "caa8902afee209ad2b59aab883b49d114c3a586c",
+  "environment": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "node": "24.19.0",
+    "pnpm": "11.25.0"
+  },
+  "scope": "Current evidence review readiness and approval UI consistency; synthetic local mock only",
+  "checks": {
+    "baseline_pytest": {
+      "passed": 167,
+      "warnings": 1
+    },
+    "final_pytest": {
+      "command": ".venv/bin/python -m pytest -q",
+      "passed": 169,
+      "failed": 0,
+      "warnings": 1
+    },
+    "focused_api": {
+      "red_failed": 10,
+      "green_passed": 10
+    },
+    "frontend": {
+      "command": "pnpm --dir web test",
+      "red_failed": 1,
+      "green_passed": 5
+    },
+    "build": {
+      "command": "pnpm --dir web build",
+      "exit_code": 0
+    },
+    "ruff": {
+      "command": ".venv/bin/ruff check src tests scripts",
+      "exit_code": 0
+    },
+    "mock_e2e": {
+      "command": ".venv/bin/python scripts/smoke_demo.py",
+      "exit_code": 0
+    },
+    "synthetic_smoke": {
+      "command": ".venv/bin/python scripts/eval_smoke.py",
+      "pass_count": 8,
+      "case_count": 8,
+      "is_benchmark": false
+    },
+    "evaluation_contract": {
+      "command": ".venv/bin/python scripts/eval_compare.py evaluation/examples/contract_v1/experiment.json",
+      "exit_code": 0,
+      "models_run": false
+    },
+    "package": {
+      "command": ".venv/bin/python scripts/check_package.py",
+      "required_files": 24,
+      "missing": 0
+    },
+    "dependencies": {
+      "command": ".venv/bin/python -m pip check",
+      "exit_code": 0
+    },
+    "independent_patch_review": "No blocking introduced issue; focused API10/frontend5 rerun passed"
+  },
+  "source_sha256": {
+    "src/opspilot_x/api.py": "19387c1de60ba7013eaf8351c1abda34df9607f3d4a140466b44820e4d04c5b2",
+    "web/src/main.tsx": "ee7ad12e2482728cee54581595c18e0b5390e3fa6945bb237b5c505ed7a3ec2b",
+    "web/src/helpers.ts": "d7ccb27515715e912c1b28af68b1f2a517bdbe4ead37a83796efc9b388e2ce4a",
+    "web/src/styles.css": "108c392b1f56dd5a86635cf77bba08a51395963e8d36404cb0a5f33ae4e31b45",
+    "tests/test_proposal_evidence_acl.py": "76d291d098f71939ef32d50abcc66af2de0ceb9eac5e94e2b90f9d5cc4b6e65b",
+    "web/src/helpers.test.ts": "021ac6eaeaf6895abd25272a45e75fe675472663e0c9954cda3a9745ddc5f409"
+  },
+  "limitations": [
+    "Readiness is a read-time advisory snapshot; mutation revalidates on server.",
+    "Linux/Chromium synthetic checks do not validate Windows WPF/setup, external deployment or G0/G1 research acceptance.",
+    "Existing Starlette/httpx deprecation warning remains."
+  ],
+  "remote_ci": "Not yet run at record creation; inspect exact feature branch commit checks.",
+  "recorded_at_utc": "2026-11-02T14:02:25.390578+00:00"
+}

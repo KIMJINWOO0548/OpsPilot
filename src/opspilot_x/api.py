@@ -266,11 +266,20 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 "SELECT receipt_id FROM work_orders WHERE proposal_id=?", (proposal_id,)
             ).fetchone()
             stored_request = AnalyzeRequest.model_validate_json(row["request_json"])
-            snapshot = evaluate_authorized(stored_request.model_copy(update={"actor": actor}))
-            citations = snapshot.citations if _fingerprint(stored_request, snapshot) == row["fingerprint"] else []
+            review_request = stored_request.model_copy(update={"actor": actor})
+            snapshot = evaluate_authorized(review_request)
+            snapshot_matches = (row["action"] == snapshot.recommended_action
+                                and _fingerprint(stored_request, snapshot) == row["fingerprint"])
+            # A read reports readiness without expiring the proposal. Do not distinguish
+            # hidden, deleted, or changed sources, or disclose their metadata.
+            evidence_reviewable = snapshot_matches and not _latest_evidence_changed(
+                review_request, snapshot,
+            )
+            citations = snapshot.citations if snapshot_matches else []
             return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
                     "owner_user": row["owner_user"], "asset_id": stored_request.asset_id,
                     "created_at": row["created_at"], "decided_by": row["decided_by"], "citations": citations,
+                    "evidence_reviewable": evidence_reviewable,
                     "fingerprint": row["fingerprint"],
                     "receipt_id": receipt["receipt_id"] if receipt else None}
 

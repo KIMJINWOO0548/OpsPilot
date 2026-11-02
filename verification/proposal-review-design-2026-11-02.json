@@ -1,0 +1,32 @@
+{
+  "base_url": "http://127.0.0.1:18211",
+  "checks": {
+    "matching_evidence_approval_enabled": true,
+    "unavailable_pending_approval_disabled": true,
+    "unavailable_first_execution_disabled": true,
+    "unavailable_receipt_recovery_enabled": true,
+    "receipt_recovery_succeeds": true,
+    "completion_hides_irrelevant_locked_action_copy": true,
+    "reinvestigate_preserves_asset": true,
+    "mobile_no_document_horizontal_overflow": true
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "screenshots": [
+    "docs/design/review-readiness-2026-11-02/before-unavailable-desktop.png",
+    "docs/design/review-readiness-2026-11-02/after-unavailable-desktop.png",
+    "docs/design/review-readiness-2026-11-02/after-recovery-available-desktop.png",
+    "docs/design/review-readiness-2026-11-02/after-unavailable-mobile.png"
+  ],
+  "notes": [
+    "Before screenshots use baseline frontend copied before edits.",
+    "Recovery-available screen and successful recovery were asserted and captured during capture_after.py; subsequent mobile locator mismatch was a harness failure and is corrected in this run."
+  ],
+  "mobile_dimensions": {
+    "client": 390,
+    "scroll": 390
+  },
+  "recovery_work_order_count": 1,
+  "screenshots_note": "Selected before/after, recovery and final mobile captures retained in the repository.",
+  "cleanup": "Temporary design servers on ports 18210 and 18211 stopped."
+}
