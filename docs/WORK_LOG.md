@@ -1,5 +1,9 @@
 # Dev / Research Work Log
 
+## 2026-11-02 — 공개 CI의 평가 예제 바이트 보존
+
+첫 공개 CI의 Linux pytest·mock smoke·웹 빌드·컨테이너 검사는 통과했으나 평가 CLI가 `SHA256 mismatch: manifest.json`으로 실패했다. Windows matrix는 그 실패로 취소됐으며 pip 결함으로 단정하지 않는다. 기존 Windows fixture는 CRLF 바이트로 해시가 고정돼 있었지만 Git 정규화 blob은 LF였다. LF 체크아웃 export에서 같은 실패를 재현하고 `.gitattributes`로 평가 예제의 원본 바이트를 보존했다. 예제20개 파일은 줄바꿈 외 내용 변경0이며, 수정한 새 LF 체크아웃 export의 평가 CLI가 통과했다. 검증 로직·해시·라벨을 완화하거나 재작성하지 않았다. 후속 GitHub Actions 결과는 해당 커밋의 CI를 따른다.
+
 ## 2026-11-02 — 현재 검토자의 문서 ACL
 
 원본 제품/실제 DB를 보존한 격리 사본에서 제안 상세·승인·최초 실행의 작성자 ACL 재사용을 수정했다. 새 회귀3실패/5통과→8통과, 전체 pytest159→167통과. Ruff, mock smoke, 합성8개, eval_compare 계약 예제, 필수24파일 검사 통과. 일반 Windows 검사에서 과거10014는 재현되지 않았다. 샌드박스 임시폴더/소켓 실패는 별도 기록하며 보안 설정은 바꾸지 않았다. [실행 명령·증거·제약](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 처음에는 Git identity 부재로 tree를 보존했고, 후속 승인으로 확인된 기존 GitHub noreply 작성자를 저장소 로컬에만 사용해 기준선/수정 커밋을 분리한다. 사용자 공개 승인은 OpsPilot GitHub 소스에 한정되며 앱 배포는 하지 않는다.

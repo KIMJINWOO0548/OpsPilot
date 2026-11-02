@@ -1,0 +1,2 @@
+# Evaluation artifacts are pinned by raw SHA256; preserve their original bytes on every platform.
+/evaluation/examples/** -text
