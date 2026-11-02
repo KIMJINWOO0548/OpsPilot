@@ -156,3 +156,5 @@ R1 중복·R3 실자료누수·R4 정상업무coverage·R5 외부benchmark 적�
 실제 Chromium은 정상 승인 가능, 권한 회수 후 승인/최초 실행 잠금, 복구 유지,409 뒤 건수 동기화, 재조회 실패 뒤 이전 버튼 제거를 확인했다. 실행 응답과 상세 GET을 함께 유실시켜도 GET 재선택으로 복구하며 실행POST1회·작업1건을 유지했다.390px 문서 넘침과 관측 JS 예외가 없었다. 최종 문구 조정 뒤 디자인 화면을 재캡처했고 임시 서버3개는 종료했다. [증거·화면·재현 경로](design/REVIEW_READINESS_2026-11-02.md).
 
 현재 준비 상태는 조회 순간의 안내이며 서버 변경 검증이 최종 권한이다. Windows WPF·설치기·운영 전체 안전성·G0/G1 연구 수용은 검증하지 않았다. GitHub에는 기존 승인된 connector 권한으로 기능 브랜치를 게시하고 정확한 remote revision/CI를 별도로 확인한다. main merge·release·visibility 변경은 하지 않는다.
+
+게시 결과: 기능 브랜치 생성 API가403 `Resource not accessible by integration`으로 거부됐다. 원격 브랜치 부재·main `caa8902` 유지 확인. 허용되지 않은 쓰기를 우회/재시도하지 않았고 push·PR·새CI는 실행되지 않았다. 구현 커밋 `72978b0`과 후속 거부 기록 커밋을 로컬에 보존하고 binary patch·Git bundle·소스ZIP을 생성했다. [정확한 요청·결과](../verification/proposal-review-publication-2026-11-02.json). 기존 연동의 쓰기 접근이 해소되면 보존한 기능 브랜치를 정상 게시해야 한다.

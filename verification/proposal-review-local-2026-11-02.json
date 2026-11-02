@@ -74,6 +74,6 @@
     "Linux/Chromium synthetic checks do not validate Windows WPF/setup, external deployment or G0/G1 research acceptance.",
     "Existing Starlette/httpx deprecation warning remains."
   ],
-  "remote_ci": "Not yet run at record creation; inspect exact feature branch commit checks.",
+  "remote_ci": "Blocked: GitHub create_branch returned403 Resource not accessible by integration. No new branch or CI run; see publication record.",
   "recorded_at_utc": "2026-11-02T14:02:25.390578+00:00"
 }

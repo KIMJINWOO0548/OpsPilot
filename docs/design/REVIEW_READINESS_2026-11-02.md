@@ -32,3 +32,7 @@ Linux Python 3.12.14 / Node 24.19.0 / pnpm 11.25.0에서 기존 전체 167개 �
 재현은 `tests/test_proposal_evidence_acl.py`와 `web/src/helpers.test.ts`를 실행한다. UI에서는 임시 engineer/approver 계정으로 초안을 만든 뒤 테스트 DB의 해당 문서 approver ACL을 제거하고, 승인함에서 상태 조회를 수행한다. 정상 자료·실계정·기존 사용자 DB를 변경하지 않는다. 테스트 서버3개는 모두 종료했다.
 
 Windows WPF·설치기 실행, 화면 리더·대비 계측, 외부 배포와 실제 원격 장애는 이번 범위에서 검증하지 않았다. 기존 Starlette/httpx deprecation 경고1개가 남아 있다. G0/G1 연구 수용·95점 달성·운영 안전성 전체를 선언하지 않는다.
+
+## 원격 게시 상태
+
+로컬 구현 커밋은 `72978b04d71b807f32411abed5c5b7b77e94e4cb`다. 기존 GitHub connector로 `feat/proposal-review-readiness` 브랜치를 생성하는 요청이403 `Resource not accessible by integration`으로 거부됐다. 읽기 전용 재확인에서 해당 브랜치는 없고 main은 `caa8902afee209ad2b59aab883b49d114c3a586c`다. 우회·재시도·새 자격증명 생성은 하지 않았다. 새 변경의 push/PR/원격CI는 미실행이며 GitHub 연동 쓰기 접근 확인이 남은 차단이다. [게시 거부 기록](../../verification/proposal-review-publication-2026-11-02.json). 로컬 커밋·전체 binary patch·Git bundle·소스 ZIP으로 변경을 보존한다.
