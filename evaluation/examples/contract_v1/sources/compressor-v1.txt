@@ -1,0 +1,3 @@
+SYNTHETIC CONTRACT EXAMPLE — NOT INDUSTRIAL GUIDANCE
+compressor-v1
+압축기 냉각 점검의 승인 절차는 coolant_check이다. 이 문서는 첫 개정본이다.

@@ -1,0 +1,30 @@
+{"case_id": "pump-original", "action": "filter_check", "evidence_ids": ["pump-v1"], "confidence": 0.9}
+{"case_id": "pump-as-known", "action": "filter_check", "evidence_ids": ["pump-v1"], "confidence": 0.9}
+{"case_id": "pump-retroactive", "action": "sensor_check", "evidence_ids": ["pump-v2"], "confidence": 0.9}
+{"case_id": "pump-future-unknown", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "pump-acl-denied", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "pump-conflict", "action": null, "evidence_ids": ["pump-v2", "pump-conflict"], "confidence": 0.9}
+{"case_id": "compressor-original", "action": "coolant_check", "evidence_ids": ["compressor-v1"], "confidence": 0.9}
+{"case_id": "compressor-as-known", "action": "coolant_check", "evidence_ids": ["compressor-v1"], "confidence": 0.9}
+{"case_id": "compressor-retroactive", "action": "seal_check", "evidence_ids": ["compressor-v2"], "confidence": 0.9}
+{"case_id": "compressor-future-unknown", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "compressor-acl-denied", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "compressor-conflict", "action": null, "evidence_ids": ["compressor-v2", "compressor-conflict"], "confidence": 0.9}
+{"case_id": "conveyor-original", "action": "belt_check", "evidence_ids": ["conveyor-v1"], "confidence": 0.9}
+{"case_id": "conveyor-as-known", "action": "belt_check", "evidence_ids": ["conveyor-v1"], "confidence": 0.9}
+{"case_id": "conveyor-retroactive", "action": "motor_check", "evidence_ids": ["conveyor-v2"], "confidence": 0.9}
+{"case_id": "conveyor-future-unknown", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "conveyor-acl-denied", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "conveyor-conflict", "action": null, "evidence_ids": ["conveyor-v2", "conveyor-conflict"], "confidence": 0.9}
+{"case_id": "fan-original", "action": "bearing_check", "evidence_ids": ["fan-v1"], "confidence": 0.9}
+{"case_id": "fan-as-known", "action": "bearing_check", "evidence_ids": ["fan-v1"], "confidence": 0.9}
+{"case_id": "fan-retroactive", "action": "alignment_check", "evidence_ids": ["fan-v2"], "confidence": 0.9}
+{"case_id": "fan-future-unknown", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "fan-acl-denied", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "fan-conflict", "action": null, "evidence_ids": ["fan-v2", "fan-conflict"], "confidence": 0.9}
+{"case_id": "valve-original", "action": "position_check", "evidence_ids": ["valve-v1"], "confidence": 0.9}
+{"case_id": "valve-as-known", "action": "position_check", "evidence_ids": ["valve-v1"], "confidence": 0.9}
+{"case_id": "valve-retroactive", "action": "actuator_check", "evidence_ids": ["valve-v2"], "confidence": 0.9}
+{"case_id": "valve-future-unknown", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "valve-acl-denied", "action": null, "evidence_ids": [], "confidence": 0.9}
+{"case_id": "valve-conflict", "action": null, "evidence_ids": ["valve-v2", "valve-conflict"], "confidence": 0.9}

@@ -1,0 +1,3 @@
+SYNTHETIC CONTRACT EXAMPLE — NOT INDUSTRIAL GUIDANCE
+conveyor-v1
+컨베이어 구동 점검의 승인 절차는 belt_check이다. 이 문서는 첫 개정본이다.

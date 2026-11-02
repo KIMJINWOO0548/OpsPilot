@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+*.sqlite3-*
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.env
+.env.*
+!.env.example
+coverage.xml
+htmlcov/
+.local/
+web/node_modules/
+desktop/**/bin/
+desktop/**/obj/
+.serena/
+# experiment outputs can be large or sensitive; commit selected reports intentionally
+evaluation/reports/*.json
+!evaluation/reports/.gitkeep

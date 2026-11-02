@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "experiment_id": "contract-v1-plumbing-check",
+  "split": "dev",
+  "dataset": {
+    "path": "manifest.json",
+    "sha256": "be986df1c98559621d33f522d0bd0a0aa7316cb09f5655850bccb35015bb840c"
+  },
+  "dataset_commit": null,
+  "code_commit": null,
+  "seed": 17,
+  "target_coverage": 0.7,
+  "bootstrap_iterations": 1000,
+  "baselines": {
+    "B0": {
+      "predictions": {
+        "path": "abstain-control.jsonl",
+        "sha256": "19c6fd7678431e8c636b96d39340f7eaf0bc1d461def55e12ae7a86782372751"
+      },
+      "conditions": {
+        "model_id": "none-fixture",
+        "model_revision": "none",
+        "prompt_sha256": null,
+        "retrieval_k": 3,
+        "context_budget_tokens": 512,
+        "hardware": "fixture-no-inference",
+        "provider": "none",
+        "temperature": 0.0
+      },
+      "implementation_status": "fixture",
+      "wall_seconds": 0.0,
+      "usd_cost_total": 0.0
+    },
+    "B2": {
+      "predictions": {
+        "path": "gold-alignment-control.jsonl",
+        "sha256": "b45dd4340215cacb8ff87376d4a71ae4549df7aaced60e940018fa971a73ecda"
+      },
+      "conditions": {
+        "model_id": "none-fixture",
+        "model_revision": "none",
+        "prompt_sha256": null,
+        "retrieval_k": 3,
+        "context_budget_tokens": 512,
+        "hardware": "fixture-no-inference",
+        "provider": "none",
+        "temperature": 0.0
+      },
+      "implementation_status": "fixture",
+      "wall_seconds": 0.0,
+      "usd_cost_total": 0.0
+    }
+  },
+  "spend_limit_usd": 0.0
+}

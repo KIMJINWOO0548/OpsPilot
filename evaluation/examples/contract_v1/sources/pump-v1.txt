@@ -1,0 +1,3 @@
+SYNTHETIC CONTRACT EXAMPLE — NOT INDUSTRIAL GUIDANCE
+pump-v1
+펌프 압력 계측의 승인 절차는 filter_check이다. 이 문서는 첫 개정본이다.

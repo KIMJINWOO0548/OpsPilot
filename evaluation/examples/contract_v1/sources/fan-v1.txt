@@ -1,0 +1,3 @@
+SYNTHETIC CONTRACT EXAMPLE — NOT INDUSTRIAL GUIDANCE
+fan-v1
+송풍기 진동 계측의 승인 절차는 bearing_check이다. 이 문서는 첫 개정본이다.

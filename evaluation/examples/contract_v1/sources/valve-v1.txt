@@ -1,0 +1,3 @@
+SYNTHETIC CONTRACT EXAMPLE — NOT INDUSTRIAL GUIDANCE
+valve-v1
+밸브 위치 확인의 승인 절차는 position_check이다. 이 문서는 첫 개정본이다.

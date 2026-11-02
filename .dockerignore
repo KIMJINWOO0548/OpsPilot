@@ -1,0 +1,15 @@
+.venv
+.git
+**/node_modules
+web/dist
+**/__pycache__
+.pytest_cache
+.ruff_cache
+*.sqlite3*
+.env*
+.local
+verification
+evaluation
+docs
+desktop
+dist

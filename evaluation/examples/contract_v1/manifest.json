@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-contract-v1-30",
+  "track": "T2",
+  "purpose": "contract_only",
+  "label_review": "author_only",
+  "sources": [
+    {
+      "source_id": "pump-v1",
+      "source_group_id": "pump",
+      "document_revision_family": "pump-sop",
+      "split": "dev",
+      "path": "sources/pump-v1.txt",
+      "sha256": "d512eabffd1150a7c968657086d32da886f7f1eaaea29f1fe042959a5e06b64b",
+      "source_ref": "synthetic://opspilot-x/contract-v1/pump-v1",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": "2026-10-01T00:00:00Z",
+      "recorded_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "source_id": "pump-v2",
+      "source_group_id": "pump",
+      "document_revision_family": "pump-sop",
+      "split": "dev",
+      "path": "sources/pump-v2.txt",
+      "sha256": "8086e159b431011135fd245d3200b02279aa053c64f8a88a8d21373c8a07befd",
+      "source_ref": "synthetic://opspilot-x/contract-v1/pump-v2",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-09-01T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-05T00:00:00Z"
+    },
+    {
+      "source_id": "pump-conflict",
+      "source_group_id": "pump",
+      "document_revision_family": "pump-sop",
+      "split": "dev",
+      "path": "sources/pump-conflict.txt",
+      "sha256": "d1d4e3d4d8b692e73e1a233540e1822e85e35ae65ce7a74e06da924d914c9e4e",
+      "source_ref": "synthetic://opspilot-x/contract-v1/pump-conflict",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-10-10T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-10T00:00:00Z"
+    },
+    {
+      "source_id": "compressor-v1",
+      "source_group_id": "compressor",
+      "document_revision_family": "compressor-sop",
+      "split": "dev",
+      "path": "sources/compressor-v1.txt",
+      "sha256": "5d249c329269d540b74708acd33b5100223aa92a6ce8606dc7c0cc832f058b6f",
+      "source_ref": "synthetic://opspilot-x/contract-v1/compressor-v1",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": "2026-10-01T00:00:00Z",
+      "recorded_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "source_id": "compressor-v2",
+      "source_group_id": "compressor",
+      "document_revision_family": "compressor-sop",
+      "split": "dev",
+      "path": "sources/compressor-v2.txt",
+      "sha256": "f52d4add97ae5c9fe7d28c38bc1c7062d0aaa59660e93ebafbf6276595de7313",
+      "source_ref": "synthetic://opspilot-x/contract-v1/compressor-v2",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-09-01T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-05T00:00:00Z"
+    },
+    {
+      "source_id": "compressor-conflict",
+      "source_group_id": "compressor",
+      "document_revision_family": "compressor-sop",
+      "split": "dev",
+      "path": "sources/compressor-conflict.txt",
+      "sha256": "8b23f1f10d3fac88515ff8716aff6dec80aeebde73f202618491cbaef319f613",
+      "source_ref": "synthetic://opspilot-x/contract-v1/compressor-conflict",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-10-10T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-10T00:00:00Z"
+    },
+    {
+      "source_id": "conveyor-v1",
+      "source_group_id": "conveyor",
+      "document_revision_family": "conveyor-sop",
+      "split": "dev",
+      "path": "sources/conveyor-v1.txt",
+      "sha256": "93c5925e6bc1e33cd240979d973f3f258cdb4dbd5febcd6e077ba6330c802cf5",
+      "source_ref": "synthetic://opspilot-x/contract-v1/conveyor-v1",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": "2026-10-01T00:00:00Z",
+      "recorded_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "source_id": "conveyor-v2",
+      "source_group_id": "conveyor",
+      "document_revision_family": "conveyor-sop",
+      "split": "dev",
+      "path": "sources/conveyor-v2.txt",
+      "sha256": "c14d94206f9061e48c0b31b7631ae16c7047c5213978d2332d3cb983dd6eed96",
+      "source_ref": "synthetic://opspilot-x/contract-v1/conveyor-v2",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-09-01T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-05T00:00:00Z"
+    },
+    {
+      "source_id": "conveyor-conflict",
+      "source_group_id": "conveyor",
+      "document_revision_family": "conveyor-sop",
+      "split": "dev",
+      "path": "sources/conveyor-conflict.txt",
+      "sha256": "061296e7d1b4e5ed1b7ecb4a38c3e48c36b5be322e9fe11a6379f8ea89cb17ec",
+      "source_ref": "synthetic://opspilot-x/contract-v1/conveyor-conflict",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-10-10T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-10T00:00:00Z"
+    },
+    {
+      "source_id": "fan-v1",
+      "source_group_id": "fan",
+      "document_revision_family": "fan-sop",
+      "split": "dev",
+      "path": "sources/fan-v1.txt",
+      "sha256": "c0a6c20538e5ea3d924546bae6c11514fa31bd86c94df1e3749933a3d1d7a5c7",
+      "source_ref": "synthetic://opspilot-x/contract-v1/fan-v1",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": "2026-10-01T00:00:00Z",
+      "recorded_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "source_id": "fan-v2",
+      "source_group_id": "fan",
+      "document_revision_family": "fan-sop",
+      "split": "dev",
+      "path": "sources/fan-v2.txt",
+      "sha256": "f84bc86a65de4e60bbd1058b2ec7e7a15f728ac231cadb05b8dbb681e8e8a162",
+      "source_ref": "synthetic://opspilot-x/contract-v1/fan-v2",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-09-01T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-05T00:00:00Z"
+    },
+    {
+      "source_id": "fan-conflict",
+      "source_group_id": "fan",
+      "document_revision_family": "fan-sop",
+      "split": "dev",
+      "path": "sources/fan-conflict.txt",
+      "sha256": "ef846619ef6335f9facc89a613974c7cd01ad9061e39065c9b2805ebd9ca02ba",
+      "source_ref": "synthetic://opspilot-x/contract-v1/fan-conflict",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-10-10T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-10T00:00:00Z"
+    },
+    {
+      "source_id": "valve-v1",
+      "source_group_id": "valve",
+      "document_revision_family": "valve-sop",
+      "split": "dev",
+      "path": "sources/valve-v1.txt",
+      "sha256": "0920b65e11a0907edbecf3be48403aaac2dd9da43e62cc6cac38eee6403a45c2",
+      "source_ref": "synthetic://opspilot-x/contract-v1/valve-v1",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": "2026-10-01T00:00:00Z",
+      "recorded_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "source_id": "valve-v2",
+      "source_group_id": "valve",
+      "document_revision_family": "valve-sop",
+      "split": "dev",
+      "path": "sources/valve-v2.txt",
+      "sha256": "77b76986f735c073c2be58bee69ad39cd5b1ff62d7820f13445f039f1bd04e44",
+      "source_ref": "synthetic://opspilot-x/contract-v1/valve-v2",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-09-01T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-05T00:00:00Z"
+    },
+    {
+      "source_id": "valve-conflict",
+      "source_group_id": "valve",
+      "document_revision_family": "valve-sop",
+      "split": "dev",
+      "path": "sources/valve-conflict.txt",
+      "sha256": "8bca625edd05903325c86f57338f77d38aac41f7ea98e13f2fe1826c31157f20",
+      "source_ref": "synthetic://opspilot-x/contract-v1/valve-conflict",
+      "license": "LicenseRef-Project-Synthetic",
+      "synthetic": true,
+      "tenant": "demo",
+      "team": "team_a",
+      "readable_roles": [
+        "engineer",
+        "approver"
+      ],
+      "valid_from": "2026-10-10T00:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-10-10T00:00:00Z"
+    }
+  ],
+  "splits": {
+    "dev": {
+      "path": "dev.jsonl",
+      "sha256": "ebcafff47f7a5520dac941d7114597f09fe6bc87ca119cec2578e4211d7a4c5b",
+      "case_ids": [
+        "pump-original",
+        "pump-as-known",
+        "pump-retroactive",
+        "pump-future-unknown",
+        "pump-acl-denied",
+        "pump-conflict",
+        "compressor-original",
+        "compressor-as-known",
+        "compressor-retroactive",
+        "compressor-future-unknown",
+        "compressor-acl-denied",
+        "compressor-conflict",
+        "conveyor-original",
+        "conveyor-as-known",
+        "conveyor-retroactive",
+        "conveyor-future-unknown",
+        "conveyor-acl-denied",
+        "conveyor-conflict",
+        "fan-original",
+        "fan-as-known",
+        "fan-retroactive",
+        "fan-future-unknown",
+        "fan-acl-denied",
+        "fan-conflict",
+        "valve-original",
+        "valve-as-known",
+        "valve-retroactive",
+        "valve-future-unknown",
+        "valve-acl-denied",
+        "valve-conflict"
+      ]
+    }
+  }
+}
