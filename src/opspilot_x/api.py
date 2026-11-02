@@ -20,10 +20,16 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .eie import evaluate
-from .schema import Actor, AnalyzeRequest, DecisionRequest, ExecuteRequest
+from .comparison import compare_snapshots
+from .schema import (Actor, AnalyzeRequest, AnalysisComparison, CompareRequest,
+                     DecisionRequest, ExecuteRequest)
 
 
 class AnalysisInput(AnalyzeRequest):
+    actor: Actor | None = None
+
+
+class ComparisonInput(CompareRequest):
     actor: Actor | None = None
 
 
@@ -123,9 +129,10 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         response.delete_cookie(auth.COOKIE, path="/", httponly=True, secure=secure_cookie, samesite="strict")
         return {"ok": True}
 
-    def evaluate_authorized(request):
+    def evaluate_authorized(request, *, evidence_connection=None):
         return evaluate(request, seed=authorized_evidence(path, request.actor, asset_id=request.asset_id,
-                                                         known_as_of=request.known_as_of))
+                                                         known_as_of=request.known_as_of,
+                                                         connection=evidence_connection))
 
 
     @contextmanager
@@ -227,6 +234,25 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.post("/api/v1/analysis")
     def analyze(request: AnalysisInput, actor: Actor = Depends(principal)):
         return evaluate_authorized(request.model_copy(update={"actor": actor}))
+
+    @app.post("/api/v1/analysis/compare", response_model=AnalysisComparison)
+    def compare(request: ComparisonInput, actor: Actor = Depends(principal)):
+        common = {"actor": actor, "asset_id": request.asset_id,
+                  "claim_key": request.claim_key, "effective_at": request.effective_at}
+        with connection() as db:
+            # Both authorized/known-as-of queries see one current ACL/document snapshot.
+            # Enforce read-only access; comparison cannot alter a proposal or mock order.
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            before = evaluate_authorized(
+                AnalyzeRequest(**common, known_as_of=request.before_known_as_of),
+                evidence_connection=db,
+            )
+            after = evaluate_authorized(
+                AnalyzeRequest(**common, known_as_of=request.after_known_as_of),
+                evidence_connection=db,
+            )
+            return compare_snapshots(before, after)
 
     @app.post("/api/v1/proposals", status_code=201)
     def create_proposal(payload: ProposalRequest, actor: Actor = Depends(principal)):

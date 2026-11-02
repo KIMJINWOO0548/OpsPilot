@@ -52,7 +52,8 @@ def initialize_evidence(path: str | Path, records: list[Evidence] | None = None)
 
 
 def authorized_evidence(path: str | Path, actor: Actor, asset_id: str | None = None,
-                        known_as_of: datetime | None = None) -> list[Evidence]:
+                        known_as_of: datetime | None = None, *,
+                        connection: sqlite3.Connection | None = None) -> list[Evidence]:
     clauses = ["d.tenant=?", "d.team=?", "a.role=?"]
     parameters = [actor.tenant, actor.team, actor.role]
     if asset_id is not None:
@@ -65,8 +66,12 @@ def authorized_evidence(path: str | Path, actor: Actor, asset_id: str | None = N
     query = ("SELECT d.payload FROM evidence_documents d JOIN evidence_acl a "
              "ON a.evidence_id=d.evidence_id WHERE " + " AND ".join(clauses)
              + " ORDER BY d.evidence_id")
-    with closing(sqlite3.connect(path)) as db:
+    def read(db):
         return [Evidence.model_validate_json(row[0]) for row in db.execute(query, parameters)]
+    if connection is not None:
+        return read(connection)
+    with closing(sqlite3.connect(path)) as db:
+        return read(db)
 
 
 def _tokens(text: str) -> set[str]:

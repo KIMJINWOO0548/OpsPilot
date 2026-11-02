@@ -4,6 +4,7 @@
 
 | ID | Gate | 작업 | 의존성 | 현재 상태 | Done 정의 |
 |---|---|---|---|---|---|
+| A05 | G2/G6 | 관측 시점별 판정 변화 비교 | A03,E01 | ✅ 합성 로컬 기능 | 같은 유효 시점·두 known cutoff의 상태/조치/허용 인용 차이, 같은 읽기DB snapshot·ACL·작업/감사 불변. 새21·Linux190·Chromium12검사. [수용](design/TEMPORAL_COMPARISON_2026-11-02.md) |
 | UI02 | G2/G6 | 현재 근거 검토 상태와 승인함 동기화 | A04,UI01 | ✅ 합성 로컬 범위 | 근거 검토 불가 시 승인·최초 실행 잠금, 복구 유지, 실패 후 상세/목록 동기화. Linux169·frontend5·Chromium 검사. [근거](design/REVIEW_READINESS_2026-11-02.md) |
 | A04 | G2/G5 | 현재 검토자 문서 ACL 재검증 | A03 | ✅ 격리 사본 | 인용·승인·최초 실행 결함3개 RED→GREEN. 삭제·시점 만료·독립 승인·영수증 복구 포함 새8개/전체167개 통과. [기록](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md) |
 | R00 | G0 | 연구/코드/라이선스 비교표 재검증 | 없음 | ◐ | 8종 공식 commit·코드 LICENSE·범위 기록; 데이터/weights 권리·명령 실행/재현 미확인 |
