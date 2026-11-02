@@ -36,6 +36,6 @@ with TemporaryDirectory() as tmp:
         assert lost.json()['state']=='UNKNOWN_RECONCILE',lost.text
         recovered=client.post('/api/v1/proposals/'+prop['proposal_id']+'/reconcile',json={'actor':approver})
         assert recovered.json()['state']=='SUCCEEDED',recovered.text
-        print('LOCAL E2E PASS: analysis → proposal → approval → response loss → reconciliation')
+        print('LOCAL E2E PASS: analysis -> proposal -> approval -> response loss -> reconciliation')
         print('receipt:',recovered.json()['receipt_id'])
         print('CAUTION: local synthetic smoke test only; not a benchmark or proof of production safety')

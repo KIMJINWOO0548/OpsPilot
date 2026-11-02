@@ -1,5 +1,9 @@
 # Dev / Research Work Log
 
+## 2026-11-02 — Windows smoke 출력 인코딩
+
+후속 공개 CI에서 Linux·컨테이너와 Windows 전체 pytest는 통과했으나 Windows smoke의 성공 메시지 화살표가 cp1252 stdout에서 `UnicodeEncodeError`를 냈다. 같은 cp1252 환경의 임시 DB smoke로 실패를 재현한 뒤 출력 구분자만 ASCII로 바꾸고 재검증했다. API·승인·실행·검증 조건과 시스템 인코딩 설정은 변경하지 않았다.
+
 ## 2026-11-02 — 공개 CI의 평가 예제 바이트 보존
 
 첫 공개 CI의 Linux pytest·mock smoke·웹 빌드·컨테이너 검사는 통과했으나 평가 CLI가 `SHA256 mismatch: manifest.json`으로 실패했다. Windows matrix는 그 실패로 취소됐으며 pip 결함으로 단정하지 않는다. 기존 Windows fixture는 CRLF 바이트로 해시가 고정돼 있었지만 Git 정규화 blob은 LF였다. LF 체크아웃 export에서 같은 실패를 재현하고 `.gitattributes`로 평가 예제의 원본 바이트를 보존했다. 예제20개 파일은 줄바꿈 외 내용 변경0이며, 수정한 새 LF 체크아웃 export의 평가 CLI가 통과했다. 검증 로직·해시·라벨을 완화하거나 재작성하지 않았다. 후속 GitHub Actions 결과는 해당 커밋의 CI를 따른다.
