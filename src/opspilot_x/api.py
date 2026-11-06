@@ -280,6 +280,9 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                     "owner_user": row["owner_user"], "asset_id": stored_request.asset_id,
                     "created_at": row["created_at"], "decided_by": row["decided_by"], "citations": citations,
                     "evidence_reviewable": evidence_reviewable,
+                    "review_context": stored_request.model_dump(mode="json", include={
+                        "claim_key", "effective_at", "known_as_of",
+                    }) if evidence_reviewable else None,
                     "fingerprint": row["fingerprint"],
                     "receipt_id": receipt["receipt_id"] if receipt else None}
 

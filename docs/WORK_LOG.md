@@ -158,3 +158,12 @@ R1 중복·R3 실자료누수·R4 정상업무coverage·R5 외부benchmark 적�
 현재 준비 상태는 조회 순간의 안내이며 서버 변경 검증이 최종 권한이다. Windows WPF·설치기·운영 전체 안전성·G0/G1 연구 수용은 검증하지 않았다. GitHub에는 기존 승인된 connector 권한으로 기능 브랜치를 게시하고 정확한 remote revision/CI를 별도로 확인한다. main merge·release·visibility 변경은 하지 않는다.
 
 게시 결과: 기능 브랜치 생성 API가403 `Resource not accessible by integration`으로 거부됐다. 원격 브랜치 부재·main `caa8902` 유지 확인. 허용되지 않은 쓰기를 우회/재시도하지 않았고 push·PR·새CI는 실행되지 않았다. 구현 커밋 `72978b0`과 후속 거부 기록 커밋을 로컬에 보존하고 binary patch·Git bundle·소스ZIP을 생성했다. [정확한 요청·결과](../verification/proposal-review-publication-2026-11-02.json). 기존 연동의 쓰기 접근이 해소되면 보존한 기능 브랜치를 정상 게시해야 한다.
+
+## 2026-11-06 승인 입력 맥락 확인
+
+- 공개 LangChain HITL의 실행 전 인자 검토 패턴을 [좁은 범위](../replica/recon.md)로 분석했다. 기존 승인함에서 누락되던 초안의 claim_key/effective_at/known_as_of를 현재 근거 권한 검증 뒤 review_context로 반환하고 KST로 표시한다.
+- 독립 승인·fingerprint·기존 근거 ACL·실행/복구는 유지한다. 권한 회수 시 review_context=null이며 조회는 상태·감사·mock 원장을 쓰지 않는다.
+- RED: 신규 2개 테스트 모두 review_context KeyError, exit 1(호스트 실행). 구현 후 전체 검증 및 제한은 replica/verification.md에 기록한다. 초기 sandbox TEMP 생성 오류와 TestClient 정지는 검증 성공으로 계산하지 않았다.
+- 형제 temporal-decision-comparison 브랜치는 ancestor가 아니며 병합하지 않았다. 기존 proposal-review-readiness 기준을 보존했다.
+
+최종 호스트 확인: 전체 pytest 171 passed(기존 경고 1), smoke E2E PASS, eval_smoke 합성8/8, 모두 exit 0. TypeScript noEmit exit 0. 브라우저 시각/WPF/운영 수용은 별도이며 미실행이다.

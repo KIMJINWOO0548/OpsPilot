@@ -61,6 +61,33 @@ def assert_no_work_orders(path):
         assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone()[0] == 0
 
 
+def test_review_context_preserves_draft_clocks_without_writing(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    with closing(sqlite3.connect(path)) as db:
+        stored = json.loads(db.execute("SELECT request_json FROM proposals").fetchone()[0])
+        before = db.execute("SELECT * FROM audit").fetchall()
+    result = client.get(endpoint(proposal)).json()
+    assert result["review_context"] == {key: stored[key] for key in
+                                        ("claim_key", "effective_at", "known_as_of")}
+    assert result["state"] == "PENDING_APPROVAL"
+    with closing(sqlite3.connect(path)) as db:
+        assert db.execute("SELECT * FROM audit").fetchall() == before
+    assert_no_work_orders(path)
+
+
+def test_review_context_disappears_when_evidence_access_is_revoked(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    assert client.get(endpoint(proposal)).json()["review_context"] is not None
+    restrict_reviewer(path, source)
+    response = client.get(endpoint(proposal))
+    assert response.json()["review_context"] is None
+    assert response.json()["state"] == "PENDING_APPROVAL"
+    assert_no_hidden_metadata(response, source)
+    assert_no_work_orders(path)
+
+
 def test_detail_filters_before_evaluation_using_current_principal(review_case, monkeypatch):
     client, path, source, proposal = review_case
     restrict_reviewer(path, source)

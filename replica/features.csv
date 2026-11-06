@@ -1,0 +1,6 @@
+feature,area,priority,original,clone,notes
+Inspect original proposed arguments before approval,review,must,yes,yes,Saved claim and both clocks projected after current evidence authorization
+Explicit approval or rejection,review,must,yes,yes,Existing independent approval unchanged
+Edit proposed tool arguments,review,could,yes,skip,Out of scope immutable signed proposals require fresh draft
+Persist and resume an agent runtime,runtime,could,yes,skip,No LangChain runtime integration in deterministic local demo
+Hide context after evidence access revocation,safety,must,no,yes,Local ACL boundary verified by regression
