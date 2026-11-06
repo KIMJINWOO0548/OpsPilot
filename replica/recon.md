@@ -24,3 +24,6 @@ F02 문서 권한 회수 → 상세 재조회 → review_context=null, 기존 �
 기준 `feat/proposal-review-readiness` / `5bd503f`. 형제 `feat/temporal-decision-comparison` / `1dd520e`는 기준의 ancestor가 아니다(`git merge-base --is-ancestor` exit 1). 해당 브랜치를 병합하거나 덮어쓰지 않았다. 이번 추가는 기존 readiness의 중복 구현이 아니라 검토 입력 누락을 채운다.
 
 수정·재개 가능한 에이전트 런타임, 실설비 실행, 도구 편집, LLM 도입은 제외. 기존 독립 승인·fingerprint·ACL·response-loss 복구 정책 유지. G0/G1 연구 및 운영 수용 완료를 의미하지 않는다. 규모 S: API 투영 1개, 기존 UI 1개, 회귀 테스트 2개.
+
+## Phase 2 depth audit
+See [critical workflow audit and acceptance plan](depth-review.md). Documentation evidence, local measurements and untested competitor behavior are distinguished.

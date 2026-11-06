@@ -21,3 +21,17 @@ coordinator가 기존 desktop 가상환경으로 실행한 원본 로그와 summ
 | python scripts/eval_smoke.py --output <owned verification/OpsPilot/eval.json> | 합성 8/8, exit 0 |
 
 원본 실행 기록은 task workspace의 verification/OpsPilot/0-validation.log, 1-validation.log, 2-validation.log 및 summary.json이다. 본 저장소는 테스트용 DB·세션·영수증을 배포하지 않는다. 현재 전체 suite는 신규 2개 권한/읽기 회귀를 포함한다. Python suite와 TypeScript 검사는 통과했지만 이번 로컬 화면의 실제 브라우저 시각 검토와 production/외부 연구 검증은 미실행이다.
+
+## Phase 2
+See [depth review](depth-review.md) for new RED/GREEN, own-only measurement, merge preservation and explicitly remaining external checks. Prior phase1 results do not validate phase2.
+
+## Phase2 host verification — completed
+Parent host logs were read directly from phase2/verification/OpsPilot. `python -m pytest -q --basetemp=<owned tmp>`: **193 passed**, 1 existing warning, exit0,154.92s wall time. Includes the merged temporal regressions, current evidence ACL/review context and new combined saved-review→compare→approval→response-loss recovery test. `scripts/smoke_demo.py`: PASS (2.82s). `scripts/eval_smoke.py`: synthetic8/8 (0.40s), not external evaluation. Frontend6 and TypeScript noEmit exit0. No package installation.
+
+Executed `scripts/build_browser_probe.mjs` and `scripts/check_temporal_handoff_browser.cjs` against Chrome156 with intercepted local synthetic API; see the browser verification below.
+
+## Phase2 actual browser verification — completed
+
+Chrome156.0.8078.80 executed the real source UI with synthetic intercepted API responses. At1440px and390px the document had0px horizontal overflow and no page exceptions. This is actual browser behavior/layout evidence, not live-backend E2E, assistive-technology certification or competitor testing. Backend behavior is covered separately by the full host suite.
+
+Native draft-review click carried exact saved seconds/milliseconds into comparison. Enter on the current-analysis button made only `/api/v1/analysis/compare` and `/api/v1/analysis` requests; fresh clocks matched and no proposal/approval was submitted. The action measured44px at both widths. Mobile screenshot reviewed: stacked callout remained readable; citation tables retain contained horizontal scrolling. [Result](evidence/browser/result.json), [desktop](evidence/browser/temporal-handoff-1440.png), [mobile](evidence/browser/temporal-handoff-390.png).

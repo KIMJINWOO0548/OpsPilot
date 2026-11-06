@@ -167,3 +167,21 @@ R1 중복·R3 실자료누수·R4 정상업무coverage·R5 외부benchmark 적�
 - 형제 temporal-decision-comparison 브랜치는 ancestor가 아니며 병합하지 않았다. 기존 proposal-review-readiness 기준을 보존했다.
 
 최종 호스트 확인: 전체 pytest 171 passed(기존 경고 1), smoke E2E PASS, eval_smoke 합성8/8, 모두 exit 0. TypeScript noEmit exit 0. 브라우저 시각/WPF/운영 수용은 별도이며 미실행이다.
+## 2026-11-02 · A05 관측 시점별 판정 변화 비교
+
+사용자가 버그/UI뿐 아니라 프로젝트의 실제 핵심 기능 발전을 요청해 기존5bd503f를 보존한 `feat/temporal-decision-comparison`을 만들었다. 개발·디자인·독립 QA가 기존 API/실제 A-104 흐름을 각각 확인했다. 실행 사전 점검은 기존 준비 상태·mock 실행과 중복되고 설비 영향 모델이 없으며, 요청별 감사 이력도 이미 있어 새 기능으로 포장하지 않았다. Product Design get-context 브리프와 후보 검토로 고정 유효 시점·두 관측 시점의 판정 비교를 선정하고 [ADR-005](decisions/ADR-005-TEMPORAL-COMPARISON.md)에 이유·수용 조건을 먼저 기록했다. 제공된 skill context preflight 스크립트 리소스는 읽기 불가라 저장 컨텍스트를 사용한 것으로 표시하지 않았다.
+
+구현: 비교 입력/응답 타입·순서/timezone 검증, 읽기 전용 비교 API, 상태/조치/인용 전체 metadata의 결정적 차이 계산을 추가했다. 두 조회를 같은 query_only SQLite 트랜잭션으로 묶고 각 cutoff의 SQL ACL/known 선필터를 유지한다. 타임라인에는 두 결과·인용 변화·A104 예시·현재ACL 안내와 오류/빈/로딩 상태를 연결했다. 비교 결과를 초안 생성/승인에 연결하지 않는다. 새 라이브러리·계정 권한·외부 자료·실제 명령·배포·과금은 없다.
+
+검증: baseline169개·두 스모크·frontend5개 통과. 초기 새15개404 RED → endpoint/동일snapshot/metadata/order 포함 최종21개 GREEN. 중간 전체185개 이후 추가5개 테스트를 포함해 최종 전체190개(34.21s, 기존 Starlette/httpx 경고1)·frontend5개·TypeScript/build·Ruff·mock E2E·합성8/8·평가계약예제·필수파일24개·pip check·diff 검사 통과. 합성/fixture 결과는 연구 성능이 아니다.
+
+독립 Chromium12개 검사에서 과거 판단과 사후 정정, 변경 없음/충돌/비인가 빈 결과, 오류/재시도·결과 초기화,390px를 확인했다. 비교 전후 제안/작업/감사 전체 행 불변과 기존 UNKNOWN 영수증 동일ID 복구·작업1건을 검증했다. 두 읽기 사이 ACL 회수는 같은 snapshot을 유지하고 다음 요청에 반영했다. 디자인 화면의 의도적503 콘솔1건과 페이지 예외0을 구별했다. 별도 코드 검토도 차단 결함 없이 비교21·기존 ACL/근거17·frontend5를 재실행했다. [화면·재현·검증 파일](design/TEMPORAL_COMPARISON_2026-11-02.md).
+
+현재ACL 기반 합성 비교이며 과거 사용자 권한 이력·실제 설비 영향·외부 벤치마크·G0/G1 연구 수용은 아니다. Windows WPF/설치기는 미검증이다. 임시8765/18213 서버는 종료했다. GitHub create_branch403은 미해결로 이번 원격 쓰기/다른 인증/재시도/CI/배포는 전혀 시도하지 않았다. 이전 브랜치5bd503f와 복구 패키지는 보존하고 새 기능 커밋·별도 패치/번들/ZIP을 준비한다.
+
+## 2026-11-06 phase2 temporal review integration
+Preserved sibling temporal comparison and phase1 review_context/readiness through normal merge. Added exact saved-clock comparison and fresh-current-analysis handoffs. [Audit/tests/gaps](../replica/depth-review.md). Frontend6 and noEmit passed; host full-suite193 passed. No production or research gate advancement.
+
+Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
+
+Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.

@@ -1,0 +1,18 @@
+{
+  "color": {
+    "text": "#445367",
+    "surface": "#f0f4f8",
+    "focus": "#087e80"
+  },
+  "pairs": [
+    [
+      "text",
+      "surface"
+    ],
+    [
+      "focus",
+      "surface",
+      "ui"
+    ]
+  ]
+}

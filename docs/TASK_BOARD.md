@@ -4,6 +4,7 @@
 
 | ID | Gate | 작업 | 의존성 | 현재 상태 | Done 정의 |
 |---|---|---|---|---|---|
+| A05 | G2/G6 | 관측 시점별 판정 변화 비교 | A03,E01 | ✅ 합성 로컬 기능 | 같은 유효 시점·두 known cutoff의 상태/조치/허용 인용 차이, 같은 읽기DB snapshot·ACL·작업/감사 불변. 새21·Linux190·Chromium12검사. [수용](design/TEMPORAL_COMPARISON_2026-11-02.md) |
 | UI02 | G2/G6 | 현재 근거 검토 상태와 승인함 동기화 | A04,UI01 | ✅ 합성 로컬 범위 | 근거 검토 불가 시 승인·최초 실행 잠금, 복구 유지, 실패 후 상세/목록 동기화. Linux169·frontend5·Chromium 검사. [근거](design/REVIEW_READINESS_2026-11-02.md) |
 | A04 | G2/G5 | 현재 검토자 문서 ACL 재검증 | A03 | ✅ 격리 사본 | 인용·승인·최초 실행 결함3개 RED→GREEN. 삭제·시점 만료·독립 승인·영수증 복구 포함 새8개/전체167개 통과. [기록](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md) |
 | R00 | G0 | 연구/코드/라이선스 비교표 재검증 | 없음 | ◐ | 8종 공식 commit·코드 LICENSE·범위 기록; 데이터/weights 권리·명령 실행/재현 미확인 |
@@ -66,3 +67,9 @@ ADR 및 WORK_LOG 업데이트: ...
 2026-10-23 후속: 브라우저 연결은 Chrome에서 복구해 같은 이미지의 임시 DB로 로그인·현재 분석·타임라인·작성자 승인 잠금·독립 승인·mock 유실/복구·엔지니어의 충돌/과거 차단을 확인했다. 임시 컨테이너를 제거하고 서비스8000 로그인 화면을 열었다. Windows 새 실패와 재부팅 시각 불일치는 [최신 기록](../verification/reboot-final-2026-10-23.json)에 보존했다. 앱·테스트·의존성 코드는 변경하지 않았으며 앞선 Linux/빌드 결과와 입력 hash가 동일하다. G0/G1·95점·공개 배포 수용은 보류다.
 
 2026-11-06 후속: 저장된 승인 입력 맥락 표시 구현(API 투영, 기존 승인함, 권한 회수 회귀). 검증 기록은 replica/verification.md. 형제 시점 비교 브랜치 병합은 범위 밖이며 연구/운영 게이트 상태를 변경하지 않는다.
+
+2026-11-06 phase2: temporal sibling and current review context combined; explicit draft-comparison/current-analysis handoffs added. See replica/depth-review.md. G0/G1/production gates remain open; host193 tests and both smokes passed.
+
+Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
+
+Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.

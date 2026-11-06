@@ -1,0 +1,49 @@
+{
+  "executed_at_utc": "2026-11-02T15:39:21.141711+00:00",
+  "baseline_revision": "5bd503f",
+  "test_file": "tests/test_analysis_compare.py",
+  "red": "15 failed:404 missing endpoint on baseline",
+  "green": "21 passed in9.45 seconds, existing Starlette/httpx warning only",
+  "coverage": [
+    "A104 retroactive action and citation delta",
+    "same cutoffs and different cutoffs with unchanged decision",
+    "A103 state change",
+    "A105 conflict preservation",
+    "business-table row identity/no historical writes and existing receipt recovery",
+    "authentication/CSRF/origin",
+    "forged actor ignored and current tenant/viewer ACL",
+    "timezone and reversed time validation",
+    "authorized known-time candidates before evaluation",
+    "WAL inter-query ACL mutation sees one read snapshot; next request observes revocation",
+    "same citation ID metadata changes detected across source/version/locator/checksum",
+    "citation order does not change comparison"
+  ],
+  "browser": {
+    "executed_at_utc": "2026-11-02T15:38:31.865271+00:00",
+    "method": "Real FastAPI, synthetic SQLite fixture, Python Playwright with system Chromium",
+    "checks": [
+      "A104 실제 사후 정정 비교 및 대기 중 중복 요청·조건 변경 차단",
+      "비교 결과는 이전 현시점 초안을 재사용하거나 과거 분석의 초안 생성을 활성화하지 않음",
+      "동일 관측 시점의 변경 없음, 비교 시점 수정 시 이전 결과 제거",
+      "역순 관측 시점은 요청 전 오류 표시, 이전 성공 결과 재사용 없음",
+      "비교 통신 오류 후 조작 복원·명시적 재시도로 정상 복구",
+      "자산 변경 시 결과 무효화, A105 충돌 상태와 조치 없음 보존",
+      "비인가 조직 근거 비교 시 숨겨진 문서 식별자·원문·조치 비노출",
+      "390px에서 두 비교 판정과 인용 변화 표시, 페이지 가로 넘침 없음",
+      "로그아웃 시 이전 비교 제거, viewer 현재 ACL로 두 판정 재계산",
+      "전체 비교·오류·조회 후 제안/작업/감사 테이블 전체 행 불변",
+      "비교와 무관하게 기존 UNKNOWN 영수증 동일 ID로 복구·mock 작업 한 건 유지",
+      "실제 Chromium 상호작용 중 JavaScript 예외 없음"
+    ],
+    "compare_request_count": 9,
+    "javascript_errors": [],
+    "business_tables_unchanged_before_recovery": true,
+    "work_orders_after_recovery": 1
+  },
+  "visual_inspection": "Desktop and390px full-page captures inspected: paired/stacked cards distinguish manual inspection from sensor diagnosis and show both visible citation deltas; tables scroll within panels on narrow screen.",
+  "cleanup": "Own temporary backend on127.0.0.1:8765 stopped; fixture contains synthetic users only",
+  "limitations": [
+    "No Windows WPF/setup execution",
+    "No physical equipment simulation, real documents, external service writes, benchmark or production validation"
+  ]
+}

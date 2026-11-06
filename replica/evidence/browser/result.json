@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "scope": "actual Chromium UI; intercepted synthetic API; backend separately tested",
+  "browser": "156.0.8078.80",
+  "viewports": [
+    {
+      "width": 1440,
+      "overflow": 0,
+      "buttonHeight": 44
+    },
+    {
+      "width": 390,
+      "overflow": 0,
+      "buttonHeight": 44
+    }
+  ],
+  "requestPaths": [
+    "/api/v1/analysis/compare",
+    "/api/v1/analysis"
+  ],
+  "exactSavedClocks": true,
+  "errors": []
+}

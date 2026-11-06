@@ -10,3 +10,13 @@ export function freshForProposal(effectiveAt:string,knownAsOf:string,now=Date.no
 export function toIso(v:string){const d=new Date(v+':00+09:00');if(!v||Number.isNaN(d.getTime()))throw new Error('올바른 KST 시점을 입력하세요.');return d.toISOString();}
 export function formatTime(v?:string|null){return v?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v)):'—';}
 export function permissions(role:string,state:string,owner?:string,user?:string,decidedBy?:string,evidenceReviewable=false){const approvedByUser=role==='approver'&&!!user&&decidedBy===user;return{decide:evidenceReviewable&&role==='approver'&&state==='PENDING_APPROVAL'&&!!owner&&owner!==user,execute:evidenceReviewable&&approvedByUser&&state==='APPROVED',reconcile:approvedByUser&&state==='UNKNOWN_RECONCILE'};}
+
+export function currentAnalysisInput(asset:string,now=new Date()){
+ const instant=now.toISOString();
+ return {asset_id:asset.trim(),claim_key:'inspection_priority',effective_at:instant,known_as_of:instant};
+}
+export function reviewComparisonInput(proposal:{asset_id?:string;evidence_reviewable?:boolean;review_context?:{claim_key:string;effective_at:string;known_as_of:string}|null},now=new Date()){
+ if(proposal.evidence_reviewable!==true||!proposal.asset_id||!proposal.review_context)return null;
+ const saved=proposal.review_context;
+ return {asset_id:proposal.asset_id,claim_key:saved.claim_key,effective_at:saved.effective_at,before_known_as_of:saved.known_as_of,after_known_as_of:now.toISOString()};
+}

@@ -2,6 +2,8 @@
 
 > 이 표에서 `작동`은 로컬 제한 범위에만 적용됩니다. 95점 달성 증거가 아닙니다.
 
+**2026-11-02 핵심 기능:** 고정 유효 시점에서 두 관측 시점의 판정·조치·인용을 비교하는 읽기 전용 API/UI를 추가했다. 동일 DB snapshot·각 시점 SQL ACL 선필터·작업/감사 불변을 새21개·전체Linux190개·Chromium 독립12개에서 검증했다. [기능·수용 기록](design/TEMPORAL_COMPARISON_2026-11-02.md). G0/G1 연구 수용·Windows WPF/설치기·원격CI는 이 결과로 완료하지 않는다. 기존 GitHub403은 재시도하지 않았다.
+
 **2026-11-02 클라우드 후속:** 현재 권한·근거로 초안을 검토할 수 있는지를 API/승인함에 연결했다. 승인·최초 실행 잠금과 영수증 복구 유지, 실패 후 목록/상세 동기화를 Linux169개·frontend5개와 실제 Chromium에서 확인했다. [화면·검증](design/REVIEW_READINESS_2026-11-02.md). Windows WPF/설치기·G0/G1 연구 수용은 이번에 검증하지 않았다. 아래 과거 수치의 날짜를 유지한다.
 
 **2026-11-02 격리 사본:** A04/OP02의 검토자 문서 ACL 결함을 재현·수정했다. 새8개/전체167개 Windows pytest, Ruff·mock E2E·합성8개·평가 계약 예제·필수파일 검사 통과. 과거10014는 일반 Windows 검사에서 재현되지 않았고 샌드박스 소켓 제한과 구별한다. WPF/설치기·출시·GitHub CI·연구 게이트는 미검증이다. [증거/한계](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 아래 표와 이전 기록은10월23일 이력이다.
@@ -31,3 +33,9 @@
 - **10월 23일 최신 검사:** 사용자 재부팅 완료 보고 후 Windows133개는120 pass/2 failures/11 errors, smoke exit1, 합성 eval8/8 exit0이었다. 13건 모두10014를 포함한다. 커널 LastBoot는10월21일로 남아 재시작 범위 확인 중이며 원인 해결로 표시하지 않는다. 표준 Desktop 실행 뒤 동일 서비스 Healthy를 확인했고, 같은 이미지·임시 DB의 실제 Chrome에서 정상 승인/복구·충돌/과거 초안 차단을 검증했다. 테스트 컨테이너는 제거했다. [최신 기록](../verification/reboot-final-2026-10-23.json). 이전 브라우저 차단은 이 Chrome 경로에서 해소됐으며 장기 안정성·연구 수용·공개 배포는 계속 미완료다.
 
 2026-11-06: 승인함의 저장 주장·유효/관측 시점 표시를 추가했다. 현재 근거 검토가 가능한 호출자에게만 읽기 투영한다. [참조 범위](../replica/recon.md), 검증은 replica/verification.md. G0/G1 연구·운영 수용 게이트는 이번 변경으로 완료되지 않는다.
+
+2026-11-06 phase2: temporal sibling and current review context combined; explicit draft-comparison/current-analysis handoffs added. See replica/depth-review.md. G0/G1/production gates remain open; host193 tests and both smokes passed.
+
+Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
+
+Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.
