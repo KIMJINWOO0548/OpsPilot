@@ -1,25 +1,17 @@
 # OpsPilot-X · 근거 검증 운영 콘솔
 
-**목표:** SK이노베이션 AI/DT Engineer 및 대기업 AI·SW 엔지니어링 포트폴리오를 위한 **증거·시점 검증 AI 플랫폼**. 최종 목표는 '95점 수준의 외부 검증 가능한 결과'이지 현재 성취 점수가 아닙니다.
+**문서의 권한·유효 시점·충돌을 검증하고, 독립 승인 후 mock 작업을 실행하는 운영 콘솔입니다.**
+
+SK이노베이션 AI/DT Engineer 및 대기업 AI·SW 엔지니어링 포트폴리오 프로젝트로 개발하고 있습니다. '95점 수준의 외부 검증 가능한 결과'는 개발 목표이며 현재 성취 점수가 아닙니다.
 
 서버 계정 로그인 → 권한 있는 문서 검색 → 유효/관측 시점 판정 → 독립 승인 → mock 실행·영수증 복구를 React/TypeScript 콘솔과 FastAPI에서 수행합니다. 계정·세션·근거 ACL·초안·감사는 SQLite에 저장합니다. [설계 결정](docs/decisions/ADR-003-SECURE-CONSOLE.md), [실행·배포 안내](docs/DEPLOYMENT.md).
 
 > **배포 준비 중인 단일 인스턴스 포트폴리오 앱**입니다. 실제 LLM, Hybrid RAG, NLI, PostgreSQL/pgvector, LangGraph, OIDC, 외부 벤치마크는 아직 없습니다. 합성 근거와 결정적 정책을 사용하며 실제 작업은 mock입니다. G0/G1 연구 수용·외부 배포 검증·95점 달성을 선언하지 않습니다. 기본 접속은 loopback으로 제한합니다.
 
-2026-11-02 격리 사본: 제안 상세·승인·최초 실행을 현재 검토자의 문서 ACL로 재검증하도록 수정했습니다. 새 회귀3실패/5통과→8통과, 전체 Windows pytest167통과입니다. 과거10014는 이번 일반 Windows 검사에서 재현되지 않았으며 WPF·설치기·출시 수용은 별도입니다. [수정·검증과 한계](docs/safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 원본·사용자 DB는 보존했습니다. 자체 코드의 라이선스는 아직 지정하지 않았으며 외부 모델·실제 회사 자료는 포함하지 않습니다.
-
-2026-10-20 개발: [8종 원천 검토](docs/research/prior_art_matrix.csv), [G1 원문·분할·holdout 및 평가 CLI](docs/evaluation/EXPERIMENT_RUNBOOK.md), [30개 합성 라벨 예시](evaluation/examples/contract_v1/README.md)를 추가했습니다. 저장된 prediction을 비교하는 도구이며 실제 B0~B4 모델 실행·외부 성능 검증은 아직 없습니다.
-
-2026-10-23 현재: Compose 서비스는 **Healthy**이고, 같은 이미지의 임시 DB에서 실제 Chrome으로 로그인→현재 근거·타임라인→작성자 승인 잠금→독립 승인→mock 응답 유실·영수증 복구를 확인했습니다. 엔지니어 권한의 충돌·과거 분석도 초안을 차단했습니다. [화면과 QA](docs/design/CONSOLE_QA.md), [현재 검증 기록](verification/reboot-final-2026-10-23.json)을 확인하세요. 검증용 계정·컨테이너는 정리했고 서비스 volume은 변경하지 않았습니다.
-
-동일 코드의 10월 22일 Linux 검사는 **133개 통과**와 두 스모크 통과였습니다. 10월 23일 Windows 재검사는 **120 통과 / 2 실패 / 11 오류**이며 13건 모두 WinError 10014를 포함합니다. 사용자의 재부팅 완료 보고와 달리 진단 환경의 커널 부팅 시각은 10월 21일로 표시돼 재시작 범위를 확인 중입니다. Windows 소켓 원인·Desktop 종료 원인·장기 실행 안정성은 미해결입니다. Linux 통과와 Chrome 검증을 공개 배포 수용이나 Windows 오류 해결로 해석하지 않습니다.
-
-## 📦 무엇이 들어 있나요?
+## 프로젝트 구성
 
 | 파일/폴더 | 목적 | 상태 |
 |---|---|---|
-| `CODEX_START_HERE.txt` | Codex에 첫 채팅으로 붙여 넣을 지시문 | 완성 |
-| `AGENTS.md` | AI 코딩 에이전트 상시 규칙 | 완성 |
 | `docs/reference/Plan_v2.0.md` / `.docx` | 전체 95점 목표 계획서 원본 | 포함 |
 | `docs/TASK_BOARD.md` | 단계별 의존성/작업·검증 기준 | 완성 |
 | `docs/architecture/EIE_CONTRACT.md` | 시간·권한·증거 모델/결정 상태 규칙 | 첫 계약 |
@@ -31,15 +23,11 @@
 | `scripts/manage_users.py` / `backup_db.py` | 계정 생성/비활성화·세션 폐기, 검증된 새 파일 백업/복원 | **임시 DB 검증** |
 | `tests/` | 단위·통합·동시성 테스트 | **자동 실행** |
 | `evaluation/datasets/SMOKE_ONLY_cases.jsonl` | 사전 작성한 8개 합성 스모크 케이스 | **벤치마크 아님** |
-| `prompts/` | 게이트 단위로 AI에게 넘길 구현 작업 지시 | 포함 |
 | `.github/workflows/ci.yml` | Linux CI 정적분석/스모크 테스트 | 템플릿; 실제 GitHub 실행 전 |
 
-## 🚀 바로 시작 (Windows + Codex)
+## Windows에서 실행
 
-1. ZIP을 원하는 경로로 **전체 압축 해제**합니다. 원본 파일은 유지하세요.
-2. VS Code / Codex에서 압축 해제한 `OpsPilotX_AI_Implementation_Kit` 폴더를 **프로젝트 루트**로 엽니다.
-3. Codex 새 채팅에 `CODEX_START_HERE.txt`의 전체 내용을 붙여 넣습니다. Codex는 먼저 `AGENTS.md`와 기존 코드·테스트를 읽고 G0/G1을 보강한 뒤 진행합니다.
-4. 로컬 실행은 PowerShell에서 `./RUN_WINDOWS.ps1` 또는 아래 명령을 사용합니다.
+저장소를 clone하거나 ZIP을 전체 압축 해제한 뒤, 저장소 루트에서 실행합니다. Python 3.12, Node.js 24, pnpm 11이 필요합니다. PowerShell에서 `./RUN_WINDOWS.ps1` 또는 아래 명령을 사용합니다.
 
 ```powershell
 py -3 -m venv .venv
@@ -67,7 +55,17 @@ bash RUN_MAC_LINUX.sh
 
 Docker 실행과 volume 내 계정 생성은 [배포 안내](docs/DEPLOYMENT.md)를 따릅니다. 호스트 공개 주소는 기본 `127.0.0.1`이며 HTTPS ingress·기업 인증·Postgres/outbox·외부 보안 검증은 후속 작업입니다. SQLite를 기업 운영 검증이 끝난 저장소라고 표현하지 않습니다.
 
-## 직접 실행할 확인 명령
+## 검증 기록
+
+2026-11-02 격리 사본: 제안 상세·승인·최초 실행을 현재 검토자의 문서 ACL로 재검증하도록 수정했습니다. 새 회귀3실패/5통과→8통과, 전체 Windows pytest167통과입니다. 과거10014는 이번 일반 Windows 검사에서 재현되지 않았으며 WPF·설치기·출시 수용은 별도입니다. [수정·검증과 한계](docs/safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md). 원본·사용자 DB는 보존했습니다. 자체 코드의 라이선스는 아직 지정하지 않았으며 외부 모델·실제 회사 자료는 포함하지 않습니다.
+
+2026-10-20 개발: [8종 원천 검토](docs/research/prior_art_matrix.csv), [G1 원문·분할·holdout 및 평가 CLI](docs/evaluation/EXPERIMENT_RUNBOOK.md), [30개 합성 라벨 예시](evaluation/examples/contract_v1/README.md)를 추가했습니다. 저장된 prediction을 비교하는 도구이며 실제 B0~B4 모델 실행·외부 성능 검증은 아직 없습니다.
+
+2026-10-23 현재: Compose 서비스는 **Healthy**이고, 같은 이미지의 임시 DB에서 실제 Chrome으로 로그인→현재 근거·타임라인→작성자 승인 잠금→독립 승인→mock 응답 유실·영수증 복구를 확인했습니다. 엔지니어 권한의 충돌·과거 분석도 초안을 차단했습니다. [화면과 QA](docs/design/CONSOLE_QA.md), [현재 검증 기록](verification/reboot-final-2026-10-23.json)을 확인하세요. 검증용 계정·컨테이너는 정리했고 서비스 volume은 변경하지 않았습니다.
+
+동일 코드의 10월 22일 Linux 검사는 **133개 통과**와 두 스모크 통과였습니다. 10월 23일 Windows 재검사는 **120 통과 / 2 실패 / 11 오류**이며 13건 모두 WinError 10014를 포함합니다. 사용자의 재부팅 완료 보고와 달리 진단 환경의 커널 부팅 시각은 10월 21일로 표시돼 재시작 범위를 확인 중입니다. Windows 소켓 원인·Desktop 종료 원인·장기 실행 안정성은 미해결입니다. Linux 통과와 Chrome 검증을 공개 배포 수용이나 Windows 오류 해결로 해석하지 않습니다.
+
+## 검증 명령
 
 ```bash
 python scripts/check_package.py
@@ -79,7 +77,7 @@ python scripts/eval_compare.py evaluation/examples/contract_v1/experiment.json
 
 `eval_smoke.py`는 **사용자가 작성한 합성 케이스와 규칙의 일치성**만 점검합니다. `eval_compare.py`의 제공 예시도 모든 보류/정답 복사 입력의 계약 검사입니다. 두 결과 모두 외부 정답 데이터에 대한 정확도나 연구 결과가 아닙니다.
 
-## G2에서 실제로 동작하는 시나리오
+## 지원하는 데모 시나리오
 
 - 문서 개정 시 현재/과거 유효한 SOP 구별 (`valid_from` / `valid_to` + `recorded_at`)
 - 나중에 기록된 소급 정정이 당시 판단에 누설되지 않는 시간여행 질의
@@ -99,12 +97,14 @@ python scripts/eval_compare.py evaluation/examples/contract_v1/experiment.json
 - G0(선행연구/라이선스)와 G1(데이터 계약/평가 분할)을 통과하지 않고 B4 성능 우위를 주장할 수 없습니다.
 - 장비·정유 공정 원격 제어, 실회사 문서, 고객 정보, 실 API 자격증명은 절대로 연결하지 않습니다.
 
-## 작업 분류/진행 순서
+## 개발 로드맵
 
 `G0 선행연구 잠금 → G1 평가 계약 → G2 E2E 바닥 코드 강화 → G3 EIE 알고리즘 → G4 공정 비교 실험 → G5 실행 신뢰성 → G6 UI/성능 → G7 외부 검증 → G8 제출 패키지`
 
 현재 `G2`에는 통과 가능한 **축소 실험 스캐폴딩**이 들어 있지만, G0/G1 공식 완료·G2 최종 완료로 표시하지 않습니다. `docs/TASK_BOARD.md`의 Gate 체크리스트와 `docs/GATE_STATUS.md`를 참조하세요.
 
-## AI 사용 원칙
+## 개발 원칙과 라이선스
 
-Codex가 코드를 작성해도 평가셋 보호, 기술 선택 이유, 실패 원인, 실측 데이터, 코드 라이선스는 개발자가 검토·설명해야 합니다. 기술 독창성, 외부 수상/공헌, 95점 획득 여부를 AI가 임의 선언하지 못하도록 `AGENTS.md`에 강제 규칙을 작성했습니다.
+AI 보조 개발을 사용하며, 평가셋 보호·기술 선택 이유·실패 원인·실측 데이터·코드 라이선스는 개발자가 검토하고 설명합니다. 검증되지 않은 기술 독창성, 외부 수상·공헌, 목표 점수 달성을 주장하지 않습니다. 기여 시 [개발 규칙](AGENTS.md)을 참고하세요.
+
+자체 코드의 라이선스는 아직 지정하지 않았습니다. 외부 모델·실제 회사 자료는 포함하지 않습니다.
