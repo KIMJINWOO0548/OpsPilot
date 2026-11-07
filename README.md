@@ -8,6 +8,8 @@ SK이노베이션 AI/DT Engineer 및 대기업 AI·SW 엔지니어링 포트폴�
 
 > **배포 준비 중인 단일 인스턴스 포트폴리오 앱**입니다. 실제 LLM, Hybrid RAG, NLI, PostgreSQL/pgvector, LangGraph, OIDC, 외부 벤치마크는 아직 없습니다. 합성 근거와 결정적 정책을 사용하며 실제 작업은 mock입니다. G0/G1 연구 수용·외부 배포 검증·95점 달성을 선언하지 않습니다. 기본 접속은 loopback으로 제한합니다.
 
+개발 순서와 안전 경계는 [시작 안내](START_HERE.md)를 확인하세요.
+
 ## 프로젝트 구성
 
 | 파일/폴더 | 목적 | 상태 |
@@ -61,7 +63,7 @@ Docker 실행과 volume 내 계정 생성은 [배포 안내](docs/DEPLOYMENT.md)
 
 2026-10-20 개발: [8종 원천 검토](docs/research/prior_art_matrix.csv), [G1 원문·분할·holdout 및 평가 CLI](docs/evaluation/EXPERIMENT_RUNBOOK.md), [30개 합성 라벨 예시](evaluation/examples/contract_v1/README.md)를 추가했습니다. 저장된 prediction을 비교하는 도구이며 실제 B0~B4 모델 실행·외부 성능 검증은 아직 없습니다.
 
-2026-10-23 현재: Compose 서비스는 **Healthy**이고, 같은 이미지의 임시 DB에서 실제 Chrome으로 로그인→현재 근거·타임라인→작성자 승인 잠금→독립 승인→mock 응답 유실·영수증 복구를 확인했습니다. 엔지니어 권한의 충돌·과거 분석도 초안을 차단했습니다. [화면과 QA](docs/design/CONSOLE_QA.md), [현재 검증 기록](verification/reboot-final-2026-10-23.json)을 확인하세요. 검증용 계정·컨테이너는 정리했고 서비스 volume은 변경하지 않았습니다.
+2026-10-23 현재: Compose 서비스는 **Healthy**이고, 같은 이미지의 임시 DB에서 실제 Chrome으로 로그인→현재 근거·타임라인→작성자 승인 잠금→독립 승인→mock 응답 유실·영수증 복구를 확인했습니다. 엔지니어 권한의 충돌·과거 분석도 초안을 차단했습니다. [화면과 QA](docs/design/CONSOLE_QA.md)를 확인하세요. 검증용 계정·컨테이너는 정리했고 서비스 volume은 변경하지 않았습니다.
 
 동일 코드의 10월 22일 Linux 검사는 **133개 통과**와 두 스모크 통과였습니다. 10월 23일 Windows 재검사는 **120 통과 / 2 실패 / 11 오류**이며 13건 모두 WinError 10014를 포함합니다. 사용자의 재부팅 완료 보고와 달리 진단 환경의 커널 부팅 시각은 10월 21일로 표시돼 재시작 범위를 확인 중입니다. Windows 소켓 원인·Desktop 종료 원인·장기 실행 안정성은 미해결입니다. Linux 통과와 Chrome 검증을 공개 배포 수용이나 Windows 오류 해결로 해석하지 않습니다.
 
@@ -105,6 +107,6 @@ python scripts/eval_compare.py evaluation/examples/contract_v1/experiment.json
 
 ## 개발 원칙과 라이선스
 
-AI 보조 개발을 사용하며, 평가셋 보호·기술 선택 이유·실패 원인·실측 데이터·코드 라이선스는 개발자가 검토하고 설명합니다. 검증되지 않은 기술 독창성, 외부 수상·공헌, 목표 점수 달성을 주장하지 않습니다. 기여 시 [개발 규칙](AGENTS.md)을 참고하세요.
+평가셋 보호·기술 선택 이유·실패 원인·실측 데이터·코드 라이선스를 검토하고 설명할 수 있도록 기록합니다. 검증되지 않은 기술 독창성, 외부 수상·공헌, 목표 점수 달성을 주장하지 않습니다. 기여 시 [개발 규칙](AGENTS.md)을 참고하세요.
 
 자체 코드의 라이선스는 아직 지정하지 않았습니다. 외부 모델·실제 회사 자료는 포함하지 않습니다.

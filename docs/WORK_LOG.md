@@ -1,5 +1,11 @@
 # Dev / Research Work Log
 
+## 2026-11-07 — 개발 안내와 필수 파일 검사
+
+시작 안내를 `START_HERE.md`, 단계별 작업을 `docs/development/`에 정리하고 현재 서버 인증·근거 권한·mock 실행 범위와 연결했다. 기존 안전 계약·권한·승인·멱등성·합성 평가 원본은 유지한다. 개발 안내 누락을 검사하지 못하는 새 회귀 1건을 먼저 재현한 뒤 필수 경로를 갱신했다. 임시 사본에서 다른 작업 디렉터리로 검사를 실행하고 개발 안내 또는 `AGENTS.md` 누락을 거부하는 3건을 확인했다.
+
+Linux / Python 3.12.14에서 `python -m pytest -q` **170 passed**(기존 Starlette/httpx 경고 1개), `ruff check src tests scripts`, mock smoke, 합성 8개 smoke, 저장 prediction 평가 예제, 필수 24파일 검사와 `pip check` 모두 exit 0. 앱·데이터·UI 구현은 변경하지 않았다. 새 Windows·컨테이너·프런트 검증은 해당 commit의 GitHub CI 결과로 구분하며 연구·배포 Gate 수용은 변경하지 않는다.
+
 ## 2026-11-02 — Windows smoke 출력 인코딩
 
 후속 공개 CI에서 Linux·컨테이너와 Windows 전체 pytest는 통과했으나 Windows smoke의 성공 메시지 화살표가 cp1252 stdout에서 `UnicodeEncodeError`를 냈다. 같은 cp1252 환경의 임시 DB smoke로 실패를 재현한 뒤 출력 구분자만 ASCII로 바꾸고 재검증했다. API·승인·실행·검증 조건과 시스템 인코딩 설정은 변경하지 않았다.

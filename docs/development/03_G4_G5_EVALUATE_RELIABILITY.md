@@ -1,4 +1,4 @@
-# Codex 게이트 작업: G4/G5
+# 평가와 신뢰성 검증 · G4/G5
 
 1. T1 official 500(별도 metadata 100 구분), T2 독립 검토 대상, T3 fault matrix를 다른 폴더와 별도 manifest로 분리.
 2. 같은 case ID·모델·retrieval K·토큰·시드에서 B2↔B3↔B4 실행. Primary metric: unsupported action rate @ Coverage 70%, safe completion, risk-coverage, AURC, paired bootstrap CI.

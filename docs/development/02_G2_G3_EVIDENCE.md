@@ -1,8 +1,8 @@
-# Codex 게이트 작업: G2 강화 + G3 EIE
+# API와 근거 검증 확장 · G2/G3
 
 선행조건: G0/G1 필수 계약과 split tester가 통과할 것. 그전 작업도 가능하지만 성과로 발표하지 말 것.
 
-1. API demo role spoofing 경계를 유지하며 OIDC/JWT/테넌트 서버 identity 설계(테스트 가능한 mock identity provider). 공개 배포 금지.
+1. 서버 계정·세션과 요청 actor 위조 차단을 유지하며 OIDC/JWT/테넌트 서버 identity 설계(테스트 가능한 mock identity provider). 공개 배포 금지.
 2. SQLite 스모크를 손상시키지 않고 PostgreSQL + pgvector의 DB schema/migrations/RLS 및 인제스터를 별도 단계로 추가.
 3. B0 lexical baseline부터 구현하고, 동일 top-k/LLM 예산으로 dense/hybrid B1과 simple-temporal B2, NLI verifier B3, EIE B4 비교 인터페이스 정의.
 4. EvidenceRecord에 authority, `supersedes`, `effective_at`, `known_as_of`, citations, SQL receipt/checksum 계약을 구현하고 out-of-order events·이력 수정·동일 문서 중복에 대한 테스트를 작성.

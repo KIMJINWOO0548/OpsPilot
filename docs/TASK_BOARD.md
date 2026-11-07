@@ -1,4 +1,6 @@
-# 작업 명세 · AI가 수행할 순서 및 완료 기준
+# 작업 명세 · 구현 순서 및 완료 기준
+
+개발 안내·패키지 검사(2026-11-07): [시작 안내](../START_HERE.md)와 단계별 문서 경로를 통합하고 필수 안내 누락 검사 3건을 추가했다. 전체 Linux 170 tests 통과이며 아래 연구·배포 수용 상태는 그대로 유지한다. [작업 기록](WORK_LOG.md).
 
 **분류:** ✅ 코드/테스트 존재(스코프 제한), ◐ 부분, ⬜ 미구현. 각 칸은 실제 테스트 로그 후에만 변경.
 
@@ -45,7 +47,7 @@ ID: RAG02
 ADR 및 WORK_LOG 업데이트: ...
 ```
 
-### 다음 에이전트가 바로 해야 할 3건
+### 다음 우선 작업 3건
 1. `R00/D01` [자산별 권리·최소 slice 제안](research/DATA_ACQUISITION_PROPOSAL.md)의 정확한 원천/버전/사용 범위를 확인한다. 다운로드·유료 호출은 실행 전 사용자 승인 범위를 특정한다.
 2. `D02` [30개 작성자 합성 예시](../evaluation/examples/contract_v1/README.md)에 대한 독립 검토자 2인·이견 조정·실제 봉인 holdout을 확보한다. [CLI](evaluation/EXPERIMENT_RUNBOOK.md) 통과만으로 G1 수용을 선언하지 않는다.
 3. `DEP01/A03/OP02`: Docker build/run·10/22 Linux133개와10/23 Chrome 검증은 완료했다. 재부팅 완료 보고 후에도 Windows120 pass/2 failures/11 errors(10014), 커널 LastBoot10/21로 관측됐다. 재시작 범위와 OS 소켓 원인을 확인한 뒤 동일 probe→전체 pytest→smoke로 검증한다. 이어 HTTPS/proxy·감사 보존·계정 수명주기·복원 전환을 검증하고, GitHub CI는 실제 실행 증거를 별도로 확보한다. 사용자 자료 승인이 확보되면 `RAG01`의 실제 lexical B0부터 고정 예산에서 측정한다. 저장 prediction B0/B2는 입력 fixture이며 외부 공개는 별도 릴리스 검토 후다.
