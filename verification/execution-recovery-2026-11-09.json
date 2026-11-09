@@ -1,0 +1,83 @@
+{
+  "schema": "opspilot.execution-recovery-verification.v1",
+  "recorded_at_utc": "2026-11-09T15:41:18.090676+00:00",
+  "base_commit": "1427ff11f01edd486e7e39d62e5a088530015882",
+  "branch": "improve/execution-recovery-20261109",
+  "scope": "Independent local SQLite mock receipt-loss defense; no restoration/replacement of inaccessible b4c3d65 or Space files.",
+  "environment": {
+    "os": "Linux",
+    "python": "3.12.14",
+    "sqlite": "3.53.1",
+    "fastapi": "0.148.0",
+    "pydantic": "2.14.1",
+    "pytest": "9.2.0",
+    "ruff": "0.17.4"
+  },
+  "checks": [
+    {
+      "command": ".venv/bin/python -m pytest -q (baseline)",
+      "exit_code": 0,
+      "passed": 193
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q tests/test_execution_recovery.py (before fix)",
+      "exit_code": 1,
+      "failed": 4,
+      "passed": 4
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q tests/test_execution_recovery.py (final)",
+      "exit_code": 0,
+      "passed": 8
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q (final)",
+      "exit_code": 0,
+      "passed": 201,
+      "warnings": 1,
+      "duration_seconds": 52.12
+    },
+    {
+      "command": ".venv/bin/python scripts/smoke_demo.py",
+      "exit_code": 0,
+      "result": "local in-process mock E2E passed"
+    },
+    {
+      "command": ".venv/bin/python scripts/eval_smoke.py",
+      "exit_code": 0,
+      "passed": 8,
+      "total": 8,
+      "benchmark": false
+    },
+    {
+      "command": ".venv/bin/python -m ruff check src tests scripts",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/bin/python scripts/check_package.py",
+      "exit_code": 0,
+      "required_files": 24,
+      "missing": 0
+    }
+  ],
+  "faults": [
+    "Owned temporary database receipt removal, followed by a new app instance",
+    "Concurrent execute/reconcile retries without a receipt",
+    "Original-approver rejection despite a forged actor body",
+    "BEFORE INSERT and BEFORE COMMIT local transaction abort/rollback"
+  ],
+  "source_sha256": {
+    "src/opspilot_x/api.py": "d49e269ad920325bc30d2ce87b7156b14cece42545b072206392fd0d17be9b58",
+    "tests/test_execution_recovery.py": "ec9dc9402be796be1ccc84c1bef2b580c8c18cf040d4ae6941f6458a9251fbd6",
+    "requirements-runtime.lock": "d9678843c252c4d54001189169848c9612f2c9b016401737f3cb3cdd57c7b5fb"
+  },
+  "ui_auth_schema_runtime_pins_unchanged_from_base": true,
+  "manual_release_api_implemented": false,
+  "external_service_tested": false,
+  "separate_process_crash_tested": false,
+  "distributed_outbox_tested": false,
+  "windows_browser_docker_tested": false,
+  "external_human_review": false,
+  "research_or_production_gate_completed": false,
+  "raw_logs": ".local/verification/20261109T153304Z-67240f0e-execution-recovery"
+}

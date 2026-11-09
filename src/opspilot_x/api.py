@@ -209,6 +209,14 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             (str(uuid.uuid4()), prop_id, kind, actor, clock()),
         )
 
+    def receipt_unavailable(db, row, actor):
+        # Missing evidence cannot establish that an earlier operation had no effect.
+        if row["state"] != "UNKNOWN_RECONCILE":
+            db.execute("UPDATE proposals SET state='UNKNOWN_RECONCILE' WHERE id=?", (row["id"],))
+            log(db, row["id"], "RECEIPT_UNAVAILABLE", actor.user_id)
+            db.commit()
+        return {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
+
     @app.get("/")
     def home():
         if (web / "dist" / "index.html").is_file():
@@ -358,6 +366,8 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             receipt = db.execute("SELECT receipt_id FROM work_orders WHERE idempotency_key=?",
                                  (key,)).fetchone()
             if receipt is None:
+                if row["state"] != "APPROVED":
+                    return receipt_unavailable(db, row, body.actor)
                 request = AnalyzeRequest.model_validate_json(row["request_json"])
                 review_request = request.model_copy(update={"actor": actor})
                 live = evaluate_authorized(review_request)
@@ -404,7 +414,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 log(db, proposal_id, "RECONCILED", body.actor.user_id)
                 db.commit()
                 return {"state": "SUCCEEDED", "receipt_id": receipt["receipt_id"]}
-            return {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
+            return receipt_unavailable(db, row, body.actor)
 
     def readable(row, actor):
         if (actor.tenant != row["tenant"] or actor.team != row["team"]

@@ -185,3 +185,27 @@ Preserved sibling temporal comparison and phase1 review_context/readiness throug
 Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
 
 Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.
+
+## 2026-11-09 · 영수증 누락 재실행 차단 (독립 증분)
+
+공식 원격 기준 `1427ff11f01edd486e7e39d62e5a088530015882`에서 별도
+`improve/execution-recovery-20261109`를 만들었다. 접근 제한 보존본 `b4c3d65`나
+Space 자료를 읽거나 복원·대체하지 않았다. 기존 사용자 작업·기준 이력·UI를 보존했다.
+
+UNKNOWN/SUCCEEDED가 영수증을 잃은 상태에서 execute가 새 모의 작업을 만드는 경로와,
+reconcile 응답은 UNKNOWN인데 저장 상태는 SUCCEEDED인 불일치를 수정했다.
+영수증이 없는 APPROVED만 최초 실행하며 불명 상태에서는 새 작업을 만들지 않는다.
+SUCCEEDED→UNKNOWN 전환과 감사는 같은 트랜잭션이고 반복 UNKNOWN은 새 감사를 쓰지 않는다.
+현재 세션·객체 범위·원 승인자·기존 영수증의 ACL 회수 후 복구 계약은 유지한다.
+
+실행: Python 3.12.14의 별도 venv에 기존 runtime pins와 dev 도구를 설치했다.
+수정 전 `pytest -q` 193 PASS와 `scripts/smoke_demo.py`, `scripts/eval_smoke.py`가 통과했다.
+새 8개는 4 FAIL/4 PASS RED 후 8 PASS였다. 전체 201 PASS, mock E2E PASS,
+합성8/8, Ruff PASS, 필수24파일 누락0이다. 기존 Starlette/httpx 경고1은 유지한다.
+원래 승인자 거부·INSERT 전/commit 전 전체 rollback·혼합 동시 재시도·원 영수증 복구를
+임시 DB에서 검사했고, 검토 후 감사 개수 단언도 추가했다.
+
+실외부 서비스·별도 process crash·outbox·stale 예약·수동 해제 API·Windows·Docker·
+브라우저·운영 수용은 이번에 검증하지 않았다. 불명 상태에 대한 timeout/자동 재실행은 없다.
+[정확한 처리 경계](safety/EXECUTION_RECOVERY_2026-11-09.md)와 새 검증 JSON을 따른다.
+G2 방어 개선으로 G0/G1 연구 수용이나 G5 전체 완료를 선언하지 않는다.
