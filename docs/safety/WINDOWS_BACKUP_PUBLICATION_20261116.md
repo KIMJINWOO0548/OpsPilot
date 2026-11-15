@@ -33,3 +33,13 @@ production source or isolated-mode safety boundary was weakened for this result.
 The subsequent elevated full run was196 passed /6 errors, all Windows10014 during
 asyncio socketpair initialization (not six application assertion failures). A final
 normal-runner full regression is in progress; do not report complete success yet.
+
+
+## Completed normal-runner full regression
+
+After the correct editable installation, the complete unchanged test collection
+passed: 202 passed, 1 Starlette/httpx deprecation warning, 172.29 seconds, exit0.
+Command: `python -m pytest -q --tb=short` using the documented Python3.13.16
+environment. Local raw evidence: reliability-installed-20261116.log.
+The earlier196/6 Windows initialization-error run is retained, not erased.
+This is a local synthetic regression result, not cross-platform or production certification.

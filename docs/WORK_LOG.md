@@ -216,3 +216,7 @@ G2 방어 개선으로 G0/G1 연구 수용이나 G5 전체 완료를 선언하�
 See [verified scope and remaining regression blocker](safety/WINDOWS_BACKUP_PUBLICATION_20261116.md).
 Atomic no-overwrite publication now uses Windows rename rather than hardlink;
 focused backup/recovery 17 PASS, synthetic E2E PASS, full 201 PASS / 1 desktop-runner failure.
+
+Follow-up: correct editable installation restored isolated desktop execution22/22;
+complete normal-runner regression202/202 passed in172.29s with one deprecation warning.
+Earlier Windows10014 initialization errors remain documented separately.
