@@ -21,3 +21,15 @@ Environment: Python 3.13.16, CaseProof hash-pinned development environment, OpsP
 src on PYTHONPATH. Editable packaging is separately blocked by setuptools interpreting
 braces in the Windows sandbox temporary installation path as variable placeholders.
 No external service writes or production data. No complete enterprise-readiness claim.
+
+
+## Subsequent desktop diagnosis
+
+The runner deliberately starts Python with -I, so the prior PYTHONPATH-only test
+environment did not make OpsPilot importable. Normal editable installation with
+existing dependencies succeeded, and an isolated `python -I` import verified the
+installed package. All22 desktop-runtime tests then passed in8.47 seconds. No
+production source or isolated-mode safety boundary was weakened for this result.
+The subsequent elevated full run was196 passed /6 errors, all Windows10014 during
+asyncio socketpair initialization (not six application assertion failures). A final
+normal-runner full regression is in progress; do not report complete success yet.
