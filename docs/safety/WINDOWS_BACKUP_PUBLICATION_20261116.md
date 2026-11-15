@@ -13,7 +13,10 @@ and temporary files are removed when publication is refused.
 
 Actual verification: backup and execution recovery 17 passed; synthetic API E2E
 analysis -> proposal -> independent approval -> response loss -> reconciliation passed;
-24 required package files present; git diff --check passed. Full regression pending.
+24 required package files present; git diff --check passed. Full regression: 201 passed / 1 failed (109.15s).
+The remaining failure is test_real_runner_ready_health_and_eof_shutdown:
+its first subprocess output line was not JSON. Cause not established; no complete
+regression pass is claimed. Local log: reliability-test-fixed-20261116.log.
 Environment: Python 3.13.16, CaseProof hash-pinned development environment, OpsPilot
 src on PYTHONPATH. Editable packaging is separately blocked by setuptools interpreting
 braces in the Windows sandbox temporary installation path as variable placeholders.

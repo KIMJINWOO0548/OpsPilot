@@ -209,3 +209,10 @@ SUCCEEDED→UNKNOWN 전환과 감사는 같은 트랜잭션이고 반복 UNKNOWN
 브라우저·운영 수용은 이번에 검증하지 않았다. 불명 상태에 대한 timeout/자동 재실행은 없다.
 [정확한 처리 경계](safety/EXECUTION_RECOVERY_2026-11-09.md)와 새 검증 JSON을 따른다.
 G2 방어 개선으로 G0/G1 연구 수용이나 G5 전체 완료를 선언하지 않는다.
+
+
+## 2026-11-16 Windows backup publication
+
+See [verified scope and remaining regression blocker](safety/WINDOWS_BACKUP_PUBLICATION_20261116.md).
+Atomic no-overwrite publication now uses Windows rename rather than hardlink;
+focused backup/recovery 17 PASS, synthetic E2E PASS, full 201 PASS / 1 desktop-runner failure.
