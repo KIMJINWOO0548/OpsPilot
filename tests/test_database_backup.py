@@ -87,3 +87,20 @@ def test_cli_backup_and_restore(tmp_path, capsys):
     assert main(["backup", "--source", str(source), "--destination", str(backup)]) == 0
     assert main(["restore", "--source", str(backup), "--destination", str(restored)]) == 0
     assert "complete" in capsys.readouterr().out
+
+
+def test_publication_race_never_overwrites_destination(tmp_path, monkeypatch):
+    import opspilot_x.database_backup as module
+    source, destination = tmp_path / "source.db", tmp_path / "backup.db"
+    _app_db(source)
+    validate = module._validate
+
+    def raced_validate(path):
+        validate(path)
+        destination.write_bytes(b"concurrent-owner")
+
+    monkeypatch.setattr(module, "_validate", raced_validate)
+    with pytest.raises(FileExistsError):
+        backup_database(source, destination)
+    assert destination.read_bytes() == b"concurrent-owner"
+    assert list(tmp_path.glob(".backup.db.*.tmp")) == []

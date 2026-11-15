@@ -54,7 +54,12 @@ def _copy_database(source, destination, *, clear_sessions):
                     with dst:
                         dst.execute("DELETE FROM sessions")
         _validate(temp)
-        os.link(temp, destination)
+        if os.name == "nt":
+            # Windows rename atomically refuses an existing destination.
+            os.rename(temp, destination)
+        else:
+            # POSIX rename can overwrite a raced destination, so retain link.
+            os.link(temp, destination)
         return {"source": str(source), "destination": str(destination),
                 "tables_validated": len(REQUIRED_TABLES)}
     finally:
