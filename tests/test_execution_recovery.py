@@ -113,3 +113,24 @@ def test_known_local_transaction_failure_can_retry_only_after_full_rollback(
         assert first.status_code == again.status_code == 200
         assert first.json() == again.json()
         assert len(workflow_rows(path)['work_orders']) == 1
+
+
+@pytest.mark.parametrize('endpoint', ['execute', 'reconcile'])
+@pytest.mark.parametrize('field', ['action', 'idempotency_key', 'receipt_id'])
+@pytest.mark.parametrize('state', ['UNKNOWN_RECONCILE', 'SUCCEEDED', 'APPROVED'])
+def test_mismatched_receipt_cannot_confirm_success(tmp_path, engineer, approver, endpoint, field, state):
+    path, proposal = prepared(tmp_path, engineer, approver, 'UNKNOWN_RECONCILE')
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute('UPDATE work_orders SET ' + field + '=?',
+                   ('   ' if field == 'receipt_id' else 'synthetic-mismatch',))
+        db.execute('UPDATE proposals SET state=?', (state,))
+    before_orders = workflow_rows(path)['work_orders']
+    with TestClient(create_app(path)) as client:
+        login(client, 'approver-1')
+        response = client.post('/api/v1/proposals/' + proposal['proposal_id'] + '/' + endpoint, json={})
+        if endpoint == 'reconcile' and state == 'APPROVED':
+            assert response.status_code == 409
+        else:
+            assert response.status_code == 200
+            assert response.json() == {'state': 'UNKNOWN_RECONCILE', 'receipt_id': None}
+    assert workflow_rows(path)['work_orders'] == before_orders

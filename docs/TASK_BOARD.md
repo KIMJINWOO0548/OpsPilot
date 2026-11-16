@@ -74,3 +74,10 @@ ADR 및 WORK_LOG 업데이트: ...
 Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
 
 Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.
+
+## 2026-11-16: Recovery receipt integrity
+- Original requirement: approval target/evidence binding, duplicate execution prevention, unknown-state reconciliation.
+- Reproduced defect: execute/reconcile accepted a receipt whose action differed from the approved proposal; reconcile accepted a changed idempotency key (3 failing regressions before the fix).
+- Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
+- Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
+- Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.

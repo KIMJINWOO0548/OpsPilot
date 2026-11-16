@@ -220,3 +220,10 @@ focused backup/recovery 17 PASS, synthetic E2E PASS, full 201 PASS / 1 desktop-r
 Follow-up: correct editable installation restored isolated desktop execution22/22;
 complete normal-runner regression202/202 passed in172.29s with one deprecation warning.
 Earlier Windows10014 initialization errors remain documented separately.
+
+## 2026-11-16: Recovery receipt integrity
+- Original requirement: approval target/evidence binding, duplicate execution prevention, unknown-state reconciliation.
+- Reproduced defect: execute/reconcile accepted a receipt whose action differed from the approved proposal; reconcile accepted a changed idempotency key (3 failing regressions before the fix).
+- Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
+- Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
+- Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.

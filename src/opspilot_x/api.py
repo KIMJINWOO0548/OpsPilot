@@ -209,8 +209,15 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             (str(uuid.uuid4()), prop_id, kind, actor, clock()),
         )
 
+    def receipt_matches(receipt, row):
+        expected_key = hashlib.sha256(f"work-order:{row['id']}:v1".encode()).hexdigest()
+        return (receipt["idempotency_key"] == expected_key
+                and receipt["proposal_id"] == row["id"]
+                and receipt["action"] == row["action"]
+                and bool(receipt["receipt_id"].strip()))
+
     def receipt_unavailable(db, row, actor):
-        # Missing evidence cannot establish that an earlier operation had no effect.
+        # Missing or inconsistent evidence cannot establish that an earlier operation had no effect.
         if row["state"] != "UNKNOWN_RECONCILE":
             db.execute("UPDATE proposals SET state='UNKNOWN_RECONCILE' WHERE id=?", (row["id"],))
             log(db, row["id"], "RECEIPT_UNAVAILABLE", actor.user_id)
@@ -363,8 +370,10 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             if row["decided_by"] != body.actor.user_id:
                 raise HTTPException(403, "Original approving actor required")
             key = hashlib.sha256(f"work-order:{proposal_id}:v1".encode()).hexdigest()
-            receipt = db.execute("SELECT receipt_id FROM work_orders WHERE idempotency_key=?",
-                                 (key,)).fetchone()
+            receipt = db.execute("SELECT * FROM work_orders WHERE idempotency_key=? OR proposal_id=?",
+                                 (key, proposal_id)).fetchone()
+            if receipt is not None and not receipt_matches(receipt, row):
+                return receipt_unavailable(db, row, body.actor)
             if receipt is None:
                 if row["state"] != "APPROVED":
                     return receipt_unavailable(db, row, body.actor)
@@ -407,9 +416,9 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 raise HTTPException(403, "Original approving actor required")
             if row["state"] not in ("UNKNOWN_RECONCILE", "SUCCEEDED"):
                 raise HTTPException(409, "Not in reconcilable state")
-            receipt = db.execute("SELECT receipt_id FROM work_orders WHERE proposal_id=?",
+            receipt = db.execute("SELECT * FROM work_orders WHERE proposal_id=?",
                                  (proposal_id,)).fetchone()
-            if receipt:
+            if receipt and receipt_matches(receipt, row):
                 db.execute("UPDATE proposals SET state='SUCCEEDED' WHERE id=?", (proposal_id,))
                 log(db, proposal_id, "RECONCILED", body.actor.user_id)
                 db.commit()
