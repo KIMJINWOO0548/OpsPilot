@@ -227,3 +227,11 @@ Earlier Windows10014 initialization errors remain documented separately.
 - Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
 - Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
 - Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.
+
+## 2026-11-16 · OP1/OP2/OP7 초안·인계 후속
+
+- 감자 PC의 원본 장부와 바탕화면 패키지·기존 Git 개선본·원격을 대조했다. 원격의 기존 개선 브랜치와 로컬 기준은 `dd4bc206`이었다. 원본과 기존 작업공간의 미추적 파일, main, 설치기·패키징을 작업 범위에서 제외했다.
+- [ADR-005](decisions/ADR-005-DRAFT-HANDOVER.md): 초안 요청키/입력 해시와 실행 키를 분리하고, 기존 콘솔을 서버 미완료 요청에 연결했다. 활성 승인자 인계·버전 경쟁·재승인·취소·원 영수증만 복구를 구현했다. 감사 실패는 상태 변경과 함께 롤백한다. 오래된 복원본은 계정과 실행 가능 상태를 격리한다.
+- 실패 먼저 확인: API 수용 8건 실패, 승인 직전 계정 회수에도 승인 200, 복원 격리 9건 실패. 독립 검토로 브라우저 저장소의 다중 창 경쟁과, 정리한 미사용 키가 다시 실행 가능한 초안을 생성하던 경계를 발견했다. 저장 요청을 서버 직렬화로 옮기고 후자를 실패 테스트(201→409)로 막았다.
+- 집중 검증: 별도 API 수용 17건, 복원 18건, 권한 재검증·서로 다른 로컬 포트·실제 데스크톱 API 재시작을 검증했다. 일부 별도 재실행에서는 Windows의 간헐적 WinError 10014가 재현되어 실행 로그를 보존했다. 기존 기준 자체도 최신 재실행 219 통과/1 오류였다. Chrome에서 기존 화면의 요청 유실·새 프로세스/포트에서 재시도·인계/취소·재조정을 확인했다. 이 브라우저 증거를 새 설치 패키지 검증으로 간주하지 않는다.
+- [원본 기준 대응표](safety/DRAFT_HANDOVER_ACCEPTANCE_20261116.md). G0/G1 수용, 실제 외부 업무, 운영 계정, 새로운 디자인, 설치기 배포는 범위 밖이다. R2는 기존 승인·복구 경계로 제한했고 R1/R3/R4/R5에 대한 새 연구 성능 추론은 하지 않았다.

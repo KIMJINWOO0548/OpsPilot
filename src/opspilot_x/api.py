@@ -9,7 +9,7 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
@@ -17,7 +17,7 @@ import hmac
 from . import auth
 from .evidence_store import initialize_evidence, authorized_evidence, search_evidence
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .eie import evaluate
 from .comparison import compare_snapshots
@@ -48,6 +48,27 @@ class LoginInput(BaseModel):
 
 class ProposalRequest(BaseModel):
     request: AnalysisInput
+
+
+class HandoverInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    expected_hash: str = Field(min_length=64, max_length=64)
+    expected_version: int = Field(ge=0, strict=True)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+DRAFT_INTENT_PREFIX = "intent:"
+
+
+class DraftIntentKey(BaseModel):
+    key: str = Field(pattern=r"^intent:[a-f0-9-]{36}$")
+
+
+def _draft_input(request):
+    data = request.model_dump(mode="json", exclude={"actor"})
+    for field in ("effective_at", "known_as_of"):
+        data[field] = getattr(request, field).astimezone(timezone.utc).isoformat()
+    return data
 
 
 def _serialize(value) -> str:
@@ -97,14 +118,22 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         response.headers["Cache-Control"] = "no-store"
         return response
 
-    def principal(request: Request):
-        user = auth.session(path, request.cookies.get(auth.COOKIE))
+    def authenticated(request, user):
         if user is None:
             raise HTTPException(401, "Authentication required")
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             if not hmac.compare_digest(request.headers.get("x-csrf-token", "").encode(), user["csrf_token"].encode()):
                 raise HTTPException(403, "CSRF token required")
         return Actor(**{k: user[k] for k in ("user_id", "role", "tenant", "team")})
+
+    def principal(request: Request):
+        return authenticated(request, auth.session(path, request.cookies.get(auth.COOKIE)))
+
+    def live_actor(db, request, previous):
+        actor = authenticated(request, auth.session_in(db, request.cookies.get(auth.COOKIE)))
+        if actor != previous:
+            raise HTTPException(403, "Account scope or role changed; retry the request")
+        return actor
 
     @app.post("/api/v1/auth/login")
     def login(body: LoginInput, request: Request, response: Response):
@@ -174,14 +203,33 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             logged_at TEXT NOT NULL,
             FOREIGN KEY(proposal_id) REFERENCES proposals(id)
         );
+        CREATE TABLE IF NOT EXISTS draft_requests(
+            tenant TEXT NOT NULL, team TEXT NOT NULL, owner_user TEXT NOT NULL,
+            request_key TEXT NOT NULL, input_hash TEXT NOT NULL,
+            proposal_id TEXT NOT NULL UNIQUE REFERENCES proposals(id),
+            PRIMARY KEY(tenant,team,owner_user,request_key)
+        );
+        CREATE TABLE IF NOT EXISTS draft_intents(
+            tenant TEXT NOT NULL, team TEXT NOT NULL, owner_user TEXT NOT NULL,
+            request_key TEXT NOT NULL UNIQUE, request_json TEXT NOT NULL,
+            PRIMARY KEY(tenant,team,owner_user)
+        );
+        CREATE TABLE IF NOT EXISTS proposal_review(
+            proposal_id TEXT PRIMARY KEY REFERENCES proposals(id),
+            version INTEGER NOT NULL, assignee TEXT, approved_generation INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS audit_details(
+            event_id TEXT PRIMARY KEY REFERENCES audit(event_id), data TEXT NOT NULL
+        );
         """)
 
     def clock():
         return datetime.now(timezone.utc).isoformat()
 
-    def _latest_evidence_changed(request: AnalyzeRequest, snapshot) -> bool:
+    def _latest_evidence_changed(request: AnalyzeRequest, snapshot, db=None) -> bool:
         now = datetime.now(timezone.utc)
-        actual = evaluate_authorized(request.model_copy(update={"effective_at": now, "known_as_of": now}))
+        actual = evaluate_authorized(request.model_copy(update={"effective_at": now, "known_as_of": now}),
+                                     evidence_connection=db)
         signature = lambda x: (
             x.state, x.recommended_action,
             [(c.evidence_id, c.source_version, c.checksum) for c in x.citations],
@@ -203,15 +251,61 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         ):
             raise HTTPException(403, "Approver role and separation of duty required")
 
-    def log(db, prop_id, kind, actor):
+    def log(db, prop_id, kind, actor, details=None):
+        event_id = str(uuid.uuid4())
         db.execute(
             "INSERT INTO audit VALUES (?,?,?,?,?)",
-            (str(uuid.uuid4()), prop_id, kind, actor, clock()),
+            (event_id, prop_id, kind, actor, clock()),
         )
+        if details is not None:
+            db.execute("INSERT INTO audit_details VALUES (?,?)", (event_id, _serialize(details)))
+
+    def review_state(db, proposal_id):
+        row = db.execute("SELECT version, assignee, approved_generation FROM proposal_review "
+                         "WHERE proposal_id=?", (proposal_id,)).fetchone()
+        return tuple(row) if row else (0, None, None)
+
+    def save_review(db, proposal_id, version, assignee, generation):
+        db.execute("INSERT INTO proposal_review VALUES (?,?,?,?) ON CONFLICT(proposal_id) "
+                   "DO UPDATE SET version=excluded.version, assignee=excluded.assignee, "
+                   "approved_generation=excluded.approved_generation",
+                   (proposal_id, version, assignee, generation))
+
+    def eligible_generation(db, row, user_id):
+        user = db.execute("SELECT session_version FROM users WHERE user_id=? AND tenant=? "
+                          "AND team=? AND role='approver' AND disabled=0",
+                          (user_id, row["tenant"], row["team"])).fetchone()
+        return user[0] if user is not None and user_id != row["owner_user"] else None
+
+    def approval_valid(db, row, generation):
+        current = eligible_generation(db, row, row["decided_by"])
+        # Legacy approvals predate the stored generation; never accept them after a revocation.
+        return current is not None and current == (0 if generation is None else generation)
+
+    def evidence_snapshot(db, row, actor):
+        stored = AnalyzeRequest.model_validate_json(row["request_json"])
+        request = stored.model_copy(update={"actor": actor})
+        snapshot = evaluate_authorized(request, evidence_connection=db)
+        matches = row["action"] == snapshot.recommended_action and _fingerprint(stored, snapshot) == row["fingerprint"]
+        return stored, request, snapshot, matches
+
+    def require_current_evidence(db, row, actor):
+        _, request, snapshot, matches = evidence_snapshot(db, row, actor)
+        if not matches or _latest_evidence_changed(request, snapshot, db):
+            db.execute("UPDATE proposals SET state='EXPIRED' WHERE id=?", (row["id"],))
+            log(db, row["id"], "EVIDENCE_CHANGED", actor.user_id)
+            db.commit()
+            raise HTTPException(409, "Evidence changed; proposal expired")
+
+    def operation_key(proposal_id):
+        return hashlib.sha256(f"work-order:{proposal_id}:v1".encode()).hexdigest()
+
+    def operation_receipt(db, proposal_id):
+        return db.execute("SELECT * FROM work_orders WHERE idempotency_key=? OR proposal_id=?",
+                          (operation_key(proposal_id), proposal_id)).fetchone()
 
     def receipt_matches(receipt, row):
-        expected_key = hashlib.sha256(f"work-order:{row['id']}:v1".encode()).hexdigest()
-        return (receipt["idempotency_key"] == expected_key
+        return (receipt["idempotency_key"] == operation_key(row["id"])
                 and receipt["proposal_id"] == row["id"]
                 and receipt["action"] == row["action"]
                 and bool(receipt["receipt_id"].strip()))
@@ -223,6 +317,46 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             log(db, row["id"], "RECEIPT_UNAVAILABLE", actor.user_id)
             db.commit()
         return {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
+
+    def draft_scope(actor):
+        if actor.role != "engineer":
+            raise HTTPException(403, "Engineer role required to draft work order")
+        return (actor.tenant, actor.team, actor.user_id)
+
+    def draft_intent(db, scope):
+        row = db.execute("SELECT request_key,request_json FROM draft_intents WHERE "
+                         "tenant=? AND team=? AND owner_user=?", scope).fetchone()
+        return {"key": row["request_key"], "request": json.loads(row["request_json"])} if row else None
+
+    @app.get("/api/v1/draft-intent")
+    def read_draft_intent(http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("BEGIN")
+            scope = draft_scope(live_actor(db, http, actor))
+            return {"attempt": draft_intent(db, scope)}
+
+    @app.post("/api/v1/draft-intent")
+    def stage_draft_intent(payload: ProposalRequest, http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            scope = draft_scope(live_actor(db, http, actor))
+            attempt = draft_intent(db, scope)
+            if attempt is None:
+                attempt = {"key": DRAFT_INTENT_PREFIX + str(uuid.uuid4()), "request": _draft_input(payload.request)}
+                db.execute("INSERT INTO draft_intents VALUES (?,?,?,?,?)",
+                           (*scope, attempt["key"], _serialize(attempt["request"])))
+            db.commit()
+            return {"attempt": attempt}
+
+    @app.post("/api/v1/draft-intent/clear")
+    def clear_draft_intent(body: DraftIntentKey, http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            scope = draft_scope(live_actor(db, http, actor))
+            db.execute("DELETE FROM draft_intents WHERE tenant=? AND team=? AND owner_user=? "
+                       "AND request_key=?", (*scope, body.key))
+            db.commit()
+        return {"ok": True}
 
     @app.get("/")
     def home():
@@ -270,30 +404,54 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             return compare_snapshots(before, after)
 
     @app.post("/api/v1/proposals", status_code=201)
-    def create_proposal(payload: ProposalRequest, actor: Actor = Depends(principal)):
-        payload.request = payload.request.model_copy(update={"actor": actor})
-        result = evaluate_authorized(payload.request)
-        if result.state != "SUPPORTED":
-            raise HTTPException(422, f"Cannot propose for state {result.state}")
-        if payload.request.actor.role != "engineer":
-            raise HTTPException(403, "Engineer role required to draft work order")
-        # Historical analysis cannot authorize a present-time write.
-        now = datetime.now(timezone.utc)
-        known_age = (now - payload.request.known_as_of).total_seconds()
-        effective_age = (now - payload.request.effective_at).total_seconds()
-        if not (0 <= known_age <= 3600 and 0 <= effective_age <= 3600):
-            raise HTTPException(422, "Historical analysis is read-only; use current timestamps")
-        prop_id = str(uuid.uuid4())
-        fingerprint = _fingerprint(payload.request, result)
+    def create_proposal(
+        payload: ProposalRequest, http: Request, actor: Actor = Depends(principal),
+        request_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                         pattern=r"^[A-Za-z0-9._:-]{1,128}$"),
+    ):
         with connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            actor = live_actor(db, http, actor)
+            owner_scope = draft_scope(actor)
+            request = payload.request.model_copy(update={"actor": actor})
+            if request_key is not None:
+                normalized = _draft_input(request)
+                input_hash = hashlib.sha256(_serialize(normalized).encode()).hexdigest()
+                scope = (*owner_scope, request_key)
+                prior = db.execute("SELECT input_hash,proposal_id FROM draft_requests WHERE "
+                                   "tenant=? AND team=? AND owner_user=? AND request_key=?", scope).fetchone()
+                if prior:
+                    if prior["input_hash"] != input_hash:
+                        raise HTTPException(409, "Draft request key was already used for different input")
+                    row = row_or_404(db, prior["proposal_id"])
+                    readable(row, actor)
+                    _, _, snapshot, matches = evidence_snapshot(db, row, actor)
+                    return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
+                            "fingerprint": row["fingerprint"], "citations": snapshot.citations if matches else []}
+                if request_key.startswith(DRAFT_INTENT_PREFIX):
+                    intent = draft_intent(db, owner_scope)
+                    if intent is None or intent["key"] != request_key:
+                        raise HTTPException(409, "Draft intent is no longer active")
+                    if intent["request"] != normalized:
+                        raise HTTPException(409, "Draft request key was staged for different input")
+            # Historical analysis cannot authorize a new present-time write.
+            now = datetime.now(timezone.utc)
+            if any(not 0 <= (now - value).total_seconds() <= 3600
+                   for value in (request.effective_at, request.known_as_of)):
+                raise HTTPException(422, "Historical analysis is read-only; use current timestamps")
+            result = evaluate_authorized(request, evidence_connection=db)
+            if result.state != "SUPPORTED":
+                raise HTTPException(422, f"Cannot propose for state {result.state}")
+            prop_id = str(uuid.uuid4())
+            fingerprint = _fingerprint(request, result)
             db.execute(
                 "INSERT INTO proposals VALUES (?,?,?,?,?,?,?,?,?,?)",
-                (prop_id, payload.request.model_dump_json(), result.recommended_action,
-                 fingerprint, payload.request.actor.user_id, payload.request.actor.tenant,
-                 payload.request.actor.team, "PENDING_APPROVAL", None, clock()),
+                (prop_id, request.model_dump_json(), result.recommended_action, fingerprint,
+                 actor.user_id, actor.tenant, actor.team, "PENDING_APPROVAL", None, clock()),
             )
-            log(db, prop_id, "CREATED", payload.request.actor.user_id)
+            if request_key is not None:
+                db.execute("INSERT INTO draft_requests VALUES (?,?,?,?,?,?)", (*scope, input_hash, prop_id))
+            log(db, prop_id, "CREATED", actor.user_id)
             db.commit()
         return {"proposal_id": prop_id, "state": "PENDING_APPROVAL", "action": result.recommended_action,
                 "fingerprint": fingerprint, "citations": result.citations}
@@ -301,92 +459,131 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.get("/api/v1/proposals/{proposal_id}")
     def proposal(proposal_id: str, actor: Actor = Depends(principal)):
         with connection() as db:
+            db.execute("BEGIN")
             row = row_or_404(db, proposal_id)
             readable(row, actor)
-            receipt = db.execute(
-                "SELECT receipt_id FROM work_orders WHERE proposal_id=?", (proposal_id,)
-            ).fetchone()
-            stored_request = AnalyzeRequest.model_validate_json(row["request_json"])
-            review_request = stored_request.model_copy(update={"actor": actor})
-            snapshot = evaluate_authorized(review_request)
-            snapshot_matches = (row["action"] == snapshot.recommended_action
-                                and _fingerprint(stored_request, snapshot) == row["fingerprint"])
+            receipt = operation_receipt(db, proposal_id)
+            stored_request, review_request, snapshot, snapshot_matches = evidence_snapshot(db, row, actor)
+            version, assignee, generation = review_state(db, proposal_id)
             # A read reports readiness without expiring the proposal. Do not distinguish
             # hidden, deleted, or changed sources, or disclose their metadata.
             evidence_reviewable = snapshot_matches and not _latest_evidence_changed(
-                review_request, snapshot,
+                review_request, snapshot, db,
             )
             citations = snapshot.citations if snapshot_matches else []
             return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
                     "owner_user": row["owner_user"], "asset_id": stored_request.asset_id,
                     "created_at": row["created_at"], "decided_by": row["decided_by"], "citations": citations,
+                    "review_version": version, "assigned_approver": assignee,
+                    "approval_valid": row["state"] == "APPROVED" and approval_valid(db, row, generation),
+                    "handover_allowed": actor.role == "approver" and actor.user_id != row["owner_user"]
+                    and actor.user_id != (assignee or row["decided_by"])
+                    and row["state"] in ("PENDING_APPROVAL", "APPROVED", "UNKNOWN_RECONCILE")
+                    and (row["state"] == "UNKNOWN_RECONCILE" or evidence_reviewable),
                     "evidence_reviewable": evidence_reviewable,
                     "review_context": stored_request.model_dump(mode="json", include={
                         "claim_key", "effective_at", "known_as_of",
                     }) if evidence_reviewable else None,
                     "fingerprint": row["fingerprint"],
-                    "receipt_id": receipt["receipt_id"] if receipt else None}
+                    "receipt_id": receipt["receipt_id"] if receipt and row["state"] == "SUCCEEDED"
+                    and receipt_matches(receipt, row) else None}
 
     @app.post("/api/v1/proposals/{proposal_id}/decision")
-    def decide(proposal_id: str, body: DecisionInput, actor: Actor = Depends(principal)):
-        body = body.model_copy(update={"actor": actor})
+    def decide(proposal_id: str, body: DecisionInput, http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            actor = live_actor(db, http, actor)
             row = row_or_404(db, proposal_id)
             readable(row, actor)
-            authorized_approver(row, body.actor)
-            if row["state"] != "PENDING_APPROVAL":
-                raise HTTPException(409, "Proposal already decided")
+            authorized_approver(row, actor)
+            version, assignee, _ = review_state(db, proposal_id)
             if body.expected_hash != row["fingerprint"]:
                 raise HTTPException(409, "Approval snapshot mismatch")
-            request = AnalyzeRequest.model_validate_json(row["request_json"])
-            # Apply caller ACL before retrieval; retain the original request for fingerprint checks.
-            review_request = request.model_copy(update={"actor": actor})
-            live = evaluate_authorized(review_request)
-            if (row["action"] != live.recommended_action
-                    or _fingerprint(request, live) != row["fingerprint"]
-                    or _latest_evidence_changed(review_request, live)):
-                db.execute("UPDATE proposals SET state='EXPIRED' WHERE id=?", (proposal_id,))
-                log(db, proposal_id, "EVIDENCE_CHANGED", body.actor.user_id)
-                db.commit()
-                raise HTTPException(409, "Evidence changed; proposal expired")
-            new_state = "APPROVED" if body.decision == "approve" else "REJECTED"
+            if ((assignee is not None or body.decision == "cancel" or body.expected_version is not None)
+                    and body.expected_version != version):
+                raise HTTPException(409, "Review version changed; refresh the proposal")
+            if body.decision == "cancel":
+                if row["decided_by"] != actor.user_id:
+                    raise HTTPException(403, "Original approving actor required")
+                if row["state"] != "APPROVED" or operation_receipt(db, proposal_id):
+                    raise HTTPException(409, "Only unexecuted approvals can be canceled")
+                new_state = "CANCELLED"
+            else:
+                if row["state"] != "PENDING_APPROVAL":
+                    raise HTTPException(409, "Proposal already decided")
+                if assignee is not None and assignee != actor.user_id:
+                    raise HTTPException(403, "Assigned approver required")
+                require_current_evidence(db, row, actor)
+                new_state = "APPROVED" if body.decision == "approve" else "REJECTED"
+            generation = eligible_generation(db, row, actor.user_id) if new_state == "APPROVED" else None
             db.execute("UPDATE proposals SET state=?, decided_by=? WHERE id=?",
-                       (new_state, body.actor.user_id, proposal_id))
-            log(db, proposal_id, new_state, body.actor.user_id)
+                       (new_state, actor.user_id, proposal_id))
+            save_review(db, proposal_id, version + 1, assignee, generation)
+            log(db, proposal_id, new_state, actor.user_id)
             db.commit()
             return {"proposal_id": proposal_id, "state": new_state}
 
-    @app.post("/api/v1/proposals/{proposal_id}/execute")
-    def execute(proposal_id: str, body: ExecuteInput, actor: Actor = Depends(principal)):
-        body = body.model_copy(update={"actor": actor})
+    @app.post("/api/v1/proposals/{proposal_id}/handover")
+    def handover(proposal_id: str, body: HandoverInput, http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            actor = live_actor(db, http, actor)
             row = row_or_404(db, proposal_id)
             readable(row, actor)
-            authorized_approver(row, body.actor)
+            authorized_approver(row, actor)
+            version, assignee, generation = review_state(db, proposal_id)
+            if body.expected_version != version or body.expected_hash != row["fingerprint"]:
+                raise HTTPException(409, "Review snapshot changed; refresh the proposal")
+            state = row["state"]
+            previous = assignee or row["decided_by"]
+            if state not in ("PENDING_APPROVAL", "APPROVED", "UNKNOWN_RECONCILE") or previous == actor.user_id:
+                raise HTTPException(409, "Proposal cannot be handed over")
+            if state == "UNKNOWN_RECONCILE" or operation_receipt(db, proposal_id):
+                new_state = "UNKNOWN_RECONCILE"
+            else:
+                # A different reviewer without evidence access must not expire another user's draft.
+                _, review_request, snapshot, matches = evidence_snapshot(db, row, actor)
+                if not matches or _latest_evidence_changed(review_request, snapshot, db):
+                    raise HTTPException(409, "Evidence changed or is not reviewable; create a new draft")
+                new_state = "PENDING_APPROVAL"
+            db.execute("UPDATE proposals SET state=?, decided_by=? WHERE id=?",
+                       (new_state, row["decided_by"] if new_state == "UNKNOWN_RECONCILE" else None, proposal_id))
+            save_review(db, proposal_id, version + 1, actor.user_id,
+                        generation if new_state == "UNKNOWN_RECONCILE" else None)
+            log(db, proposal_id, "HANDOVER", actor.user_id, {
+                "from_approver": previous, "to_approver": actor.user_id, "reason": body.reason,
+                "version": version + 1, "fingerprint": row["fingerprint"],
+                "from_state": state, "to_state": new_state,
+            })
+            db.commit()
+            return {"proposal_id": proposal_id, "state": new_state, "review_version": version + 1,
+                    "assigned_approver": actor.user_id}
+
+    @app.post("/api/v1/proposals/{proposal_id}/execute")
+    def execute(proposal_id: str, body: ExecuteInput, http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            actor = live_actor(db, http, actor)
+            row = row_or_404(db, proposal_id)
+            readable(row, actor)
+            authorized_approver(row, actor)
             if row["state"] not in ("APPROVED", "SUCCEEDED", "UNKNOWN_RECONCILE"):
                 raise HTTPException(409, "Unapproved or terminal proposal")
-            if row["decided_by"] != body.actor.user_id:
+            _, assignee, generation = review_state(db, proposal_id)
+            if row["decided_by"] != actor.user_id or (assignee is not None and assignee != actor.user_id):
                 raise HTTPException(403, "Original approving actor required")
-            key = hashlib.sha256(f"work-order:{proposal_id}:v1".encode()).hexdigest()
-            receipt = db.execute("SELECT * FROM work_orders WHERE idempotency_key=? OR proposal_id=?",
-                                 (key, proposal_id)).fetchone()
+            if row["state"] == "UNKNOWN_RECONCILE":
+                return receipt_unavailable(db, row, actor)
+            receipt = operation_receipt(db, proposal_id)
             if receipt is not None and not receipt_matches(receipt, row):
-                return receipt_unavailable(db, row, body.actor)
+                return receipt_unavailable(db, row, actor)
             if receipt is None:
                 if row["state"] != "APPROVED":
-                    return receipt_unavailable(db, row, body.actor)
-                request = AnalyzeRequest.model_validate_json(row["request_json"])
-                review_request = request.model_copy(update={"actor": actor})
-                live = evaluate_authorized(review_request)
-                if (row["action"] != live.recommended_action
-                    or _fingerprint(request, live) != row["fingerprint"]
-                    or _latest_evidence_changed(review_request, live)):
-                    db.execute("UPDATE proposals SET state='EXPIRED' WHERE id=?", (proposal_id,))
-                    log(db, proposal_id, "EVIDENCE_CHANGED", body.actor.user_id)
-                    db.commit()
-                    raise HTTPException(409, "Evidence changed; proposal expired")
+                    return receipt_unavailable(db, row, actor)
+                if not approval_valid(db, row, generation):
+                    raise HTTPException(409, "Approval no longer valid; handover and reapproval required")
+                require_current_evidence(db, row, actor)
+                key = operation_key(proposal_id)
                 db.execute("INSERT INTO work_orders VALUES (?,?,?,?,?)",
                            (key, proposal_id, str(uuid.uuid4()), row["action"], clock()))
                 receipt = db.execute("SELECT receipt_id FROM work_orders WHERE idempotency_key=?",
@@ -396,34 +593,35 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 # Reconciler MUST read receipt; must NOT create a new external request.
                 db.execute("UPDATE proposals SET state='UNKNOWN_RECONCILE' WHERE id=?",
                            (proposal_id,))
-                log(db, proposal_id, "RESPONSE_LOST", body.actor.user_id)
+                log(db, proposal_id, "RESPONSE_LOST", actor.user_id)
                 db.commit()
                 return {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
             db.execute("UPDATE proposals SET state='SUCCEEDED' WHERE id=?", (proposal_id,))
-            log(db, proposal_id, "SUCCEEDED", body.actor.user_id)
+            log(db, proposal_id, "SUCCEEDED", actor.user_id)
             db.commit()
             return {"state": "SUCCEEDED", "receipt_id": receipt["receipt_id"]}
 
     @app.post("/api/v1/proposals/{proposal_id}/reconcile")
-    def reconcile(proposal_id: str, body: ExecuteInput, actor: Actor = Depends(principal)):
-        body = body.model_copy(update={"actor": actor})
+    def reconcile(proposal_id: str, body: ExecuteInput, http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            actor = live_actor(db, http, actor)
             row = row_or_404(db, proposal_id)
             readable(row, actor)
-            authorized_approver(row, body.actor)
-            if row["decided_by"] != body.actor.user_id:
-                raise HTTPException(403, "Original approving actor required")
+            authorized_approver(row, actor)
+            _, assignee, _ = review_state(db, proposal_id)
+            if (assignee or row["decided_by"]) != actor.user_id:
+                raise HTTPException(403, "Assigned or original approving actor required")
             if row["state"] not in ("UNKNOWN_RECONCILE", "SUCCEEDED"):
                 raise HTTPException(409, "Not in reconcilable state")
             receipt = db.execute("SELECT * FROM work_orders WHERE proposal_id=?",
                                  (proposal_id,)).fetchone()
             if receipt and receipt_matches(receipt, row):
                 db.execute("UPDATE proposals SET state='SUCCEEDED' WHERE id=?", (proposal_id,))
-                log(db, proposal_id, "RECONCILED", body.actor.user_id)
+                log(db, proposal_id, "RECONCILED", actor.user_id)
                 db.commit()
                 return {"state": "SUCCEEDED", "receipt_id": receipt["receipt_id"]}
-            return receipt_unavailable(db, row, body.actor)
+            return receipt_unavailable(db, row, actor)
 
     def readable(row, actor):
         if (actor.tenant != row["tenant"] or actor.team != row["team"]
@@ -443,7 +641,17 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     def audit(proposal_id: str, actor: Actor = Depends(principal)):
         with connection() as db:
             readable(row_or_404(db, proposal_id), actor)
-            return {"items": [dict(row) for row in db.execute("SELECT kind,actor,logged_at FROM audit WHERE proposal_id=? ORDER BY logged_at", (proposal_id,))]}
+            rows = db.execute("SELECT kind,actor,logged_at,data FROM audit "
+                              "LEFT JOIN audit_details USING(event_id) WHERE proposal_id=? "
+                              "ORDER BY logged_at,audit.rowid", (proposal_id,))
+            items = []
+            for row in rows:
+                item = dict(row)
+                data = item.pop("data")
+                if data is not None:
+                    item["details"] = json.loads(data)
+                items.append(item)
+            return {"items": items}
 
     @app.get("/api/v1/evidence")
     def evidence(q: str = Query("", max_length=1000), asset_id: str | None = Query(None, max_length=80), effective_at: datetime | None = None,

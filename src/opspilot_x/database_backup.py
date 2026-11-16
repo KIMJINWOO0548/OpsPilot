@@ -2,7 +2,9 @@
 import os
 import sqlite3
 import tempfile
+import uuid
 from contextlib import closing
+from datetime import datetime, timezone
 from pathlib import Path
 
 REQUIRED_TABLES = frozenset({
@@ -52,7 +54,21 @@ def _copy_database(source, destination, *, clear_sessions):
                 src.backup(dst)
                 if clear_sessions:
                     with dst:
+                        columns = {row[1] for row in dst.execute('PRAGMA table_info(users)')}
+                        if not {'disabled', 'session_version'} <= columns:
+                            raise ValueError('Restore requires account quarantine columns; legacy backup refused')
                         dst.execute("DELETE FROM sessions")
+                        dst.execute('UPDATE users SET disabled=1, session_version=session_version+1')
+                        # The snapshot cannot prove that a later execution or revocation never happened.
+                        for proposal_id, state in dst.execute(
+                            "SELECT id,state FROM proposals WHERE state IN ('PENDING_APPROVAL','APPROVED')"
+                        ).fetchall():
+                            restored_state = 'EXPIRED' if state == 'PENDING_APPROVAL' else 'UNKNOWN_RECONCILE'
+                            dst.execute('UPDATE proposals SET state=? WHERE id=?',
+                                        (restored_state, proposal_id))
+                            dst.execute('INSERT INTO audit VALUES (?,?,?,?,?)',
+                                        (str(uuid.uuid4()), proposal_id, 'RESTORE_QUARANTINED',
+                                         'system', datetime.now(timezone.utc).isoformat()))
         _validate(temp)
         if os.name == "nt":
             # Windows rename atomically refuses an existing destination.
@@ -72,5 +88,5 @@ def backup_database(source, destination):
 
 
 def restore_database(source, destination):
-    """Restore validated data to a new file with all saved sessions revoked."""
+    """Restore to a new file with users disabled and executable proposals quarantined."""
     return _copy_database(source, destination, clear_sessions=True)

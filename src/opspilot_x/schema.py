@@ -118,8 +118,9 @@ class AnalysisComparison(BaseModel):
 
 class DecisionRequest(BaseModel):
     actor: Actor
-    decision: Literal["approve", "reject"]
+    decision: Literal["approve", "reject", "cancel"]
     expected_hash: str = Field(min_length=64, max_length=64)
+    expected_version: int | None = Field(default=None, ge=0, strict=True)
 
 
 class ExecuteRequest(BaseModel):

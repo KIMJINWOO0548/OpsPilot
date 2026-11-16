@@ -90,11 +90,15 @@ def token_hash(token):
 
 
 def session(path, token):
+    with connection(path) as db:
+        return session_in(db, token)
+
+
+def session_in(db, token):
     if not token or len(token) > 256:
         return None
-    with connection(path) as db:
-        row = db.execute('SELECT u.user_id,u.tenant,u.team,u.role,s.csrf_token FROM sessions s JOIN users u ON s.username=u.username WHERE token_hash=? AND expires_at>? AND u.disabled=0', (token_hash(token), time.time())).fetchone()
-        return dict(row) if row else None
+    row = db.execute('SELECT u.user_id,u.tenant,u.team,u.role,s.csrf_token FROM sessions s JOIN users u ON s.username=u.username WHERE token_hash=? AND expires_at>? AND u.disabled=0', (token_hash(token), time.time())).fetchone()
+    return dict(row) if row else None
 
 
 def logout(path, token):

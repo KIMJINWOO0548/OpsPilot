@@ -1,7 +1,7 @@
 // @ts-nocheck -- Built-in Node runner needs no test dependency.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {kstInput,toIso,permissions,freshForProposal,reviewComparisonInput,currentAnalysisInput} from './helpers.ts';
+import {kstInput,toIso,permissions,freshForProposal,reviewComparisonInput,currentAnalysisInput,sameDraftRequest} from './helpers.ts';
 test('KST preserves the instant and rejects invalid input',()=>{assert.equal(toIso('2026-09-20T10:00'),'2026-09-20T01:00:00.000Z');assert.equal(kstInput(new Date('2026-09-20T01:00:00Z')),'2026-09-20T10:00');assert.throws(()=>toIso(''));});
 
 test('historical and future analysis stays read-only in the console',()=>{
@@ -53,4 +53,26 @@ test('draft review transfers both saved clocks without reusing historical result
  assert.equal(fresh.known_as_of,now.toISOString());
  assert.equal(freshForProposal(fresh.effective_at,fresh.known_as_of,now.getTime()),true);
  assert.equal(freshForProposal(comparison.effective_at,comparison.before_known_as_of,now.getTime()),false);
+});
+
+test('a persisted attempt matches only the exact analysis input, including both clocks',()=>{
+ const request=currentAnalysisInput('A-103',new Date('2026-11-06T10:23:45Z'));
+ const relaunched={...request,effective_at:'2026-11-06T10:23:45+00:00',known_as_of:'2026-11-06T10:23:45.000000+00:00'};
+ assert.equal(freshForProposal(request.effective_at,request.known_as_of,Date.parse('2026-11-07T10:23:45Z')),false);
+ assert.equal(sameDraftRequest(relaunched,request),true);
+ for(const change of [{asset_id:'A-104'},{claim_key:'other'},{effective_at:'2026-11-06T10:23:46Z'},{known_as_of:'2026-11-06T10:23:45.000001Z'}]){
+  assert.equal(sameDraftRequest(relaunched,{...request,...change}),false);
+ }
+ assert.equal(sameDraftRequest({...relaunched,effective_at:'2026-11-06T10:23:45.123000+00:00'},{...request,effective_at:'2026-11-06T10:23:45.123Z'}),true);
+});
+
+test('handover reserves decisions and receipt recovery for the assignee',()=>{
+ const assigned={approver:'carol'};
+ assert.equal(permissions('approver','PENDING_APPROVAL','alice','bob',undefined,true,assigned).decide,false);
+ assert.equal(permissions('approver','PENDING_APPROVAL','alice','carol',undefined,true,assigned).decide,true);
+ assert.equal(permissions('approver','PENDING_APPROVAL','alice','alice',undefined,true,{approver:'alice'}).decide,false);
+ assert.equal(permissions('approver','PENDING_APPROVAL','alice',undefined,undefined,true).decide,false);
+ assert.deepEqual(permissions('approver','UNKNOWN_RECONCILE','alice','bob','bob',true,assigned),{decide:false,execute:false,reconcile:false});
+ assert.deepEqual(permissions('approver','UNKNOWN_RECONCILE','alice','carol','bob',false,assigned),{decide:false,execute:false,reconcile:true});
+ assert.equal(permissions('approver','APPROVED','alice','bob','bob',true,{approvalValid:false}).execute,false);
 });
