@@ -82,6 +82,10 @@ function App(){
    reviewHeading.current?.focus();
   }
  },[page]);
+ useEffect(()=>{
+  const name=page==='timeline'&&comparisonRequestId?'초안 근거 비교':pages.find(item=>item.id===page)!.title;
+  document.title='OpsPilot-X · '+(checking?'로컬 연결 준비':session?name:'로그인');
+ },[checking,session,page,comparisonRequestId]);
  const input=():Input=>({asset_id:asset.trim(),claim_key:'inspection_priority',effective_at:toIso(effective),known_as_of:toIso(known)});
  function invalidate(){setAnalysis(null);setAnalyzedInput(null);setSearched(false);setEvidence([]);setComparison(null);setComparisonRequestId(null);setNotice('');}
  async function searchEvidence(req:Input){const params=new URLSearchParams({q:query,asset_id:req.asset_id,effective_at:req.effective_at,known_as_of:req.known_as_of});setEvidence((await api<{items:Evidence[]}>(`/api/v1/evidence?${params}`)).items);setSearched(true);}

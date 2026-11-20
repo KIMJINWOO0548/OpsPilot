@@ -14,6 +14,7 @@ public sealed record DesktopStartupFailure(string Reason, string NextAction);
 public static class DesktopPolicy
 {
     public const string TokenHeader = "X-OpsPilot-Desktop-Token";
+    public const string DefaultWindowTitle = "OpsPilot-X · 로컬 운영 검증";
     public static string DataDirectory(string[] args)
     {
         if (args.Length == 0) return Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OpsPilot-X"));
@@ -38,6 +39,17 @@ public static class DesktopPolicy
     {
         var authority = $"http://127.0.0.1:{origin.Port}";
         return Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "http" && uri.Host == "127.0.0.1" && uri.Port == origin.Port && uri.UserInfo.Length == 0 && (value == authority || value.StartsWith(authority + "/", StringComparison.Ordinal) || value.StartsWith(authority + "?", StringComparison.Ordinal) || value.StartsWith(authority + "#", StringComparison.Ordinal));
+    }
+    public static string WorkspaceTitle(Uri origin, string source, string documentTitle)
+    {
+        if (!IsOwnOrigin(origin, source) || !Uri.TryCreate(source, UriKind.Absolute, out var page) ||
+            page.AbsolutePath != "/" || page.Query.Length != 0) return DefaultWindowTitle;
+        return documentTitle switch
+        {
+            "OpsPilot-X · 로컬 연결 준비" or "OpsPilot-X · 로그인" or "OpsPilot-X · 근거 조사" or "OpsPilot-X · 근거 타임라인" or
+            "OpsPilot-X · 승인함" or "OpsPilot-X · 초안 근거 비교" => documentTitle,
+            _ => DefaultWindowTitle,
+        };
     }
     // Child output and exception messages may contain credentials.
     public static DesktopStartupFailure SafeFailure(Exception e) => e switch

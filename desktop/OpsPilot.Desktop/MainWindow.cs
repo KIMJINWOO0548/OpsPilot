@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -21,7 +23,7 @@ public sealed class MainWindow : Window
 
     public MainWindow(string dataDirectory)
     {
-        data = dataDirectory; Title = "OpsPilot-X · 로컬 Preview"; Width = 1200; Height = 820; MinWidth = 960; MinHeight = 640;
+        data = dataDirectory; Title = DesktopPolicy.DefaultWindowTitle; Width = 1200; Height = 820; MinWidth = 960; MinHeight = 640;
         Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Resources/OpsPilot.ico"));
         WindowStartupLocation = WindowStartupLocation.CenterScreen; FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14;
         Background = System.Windows.Media.Brushes.WhiteSmoke; Content = layout;
@@ -31,10 +33,39 @@ public sealed class MainWindow : Window
         var close = new Button { Content = "종료", Padding = new Thickness(20,9,20,9) }; buttons.Children.Add(close); close.Click += (_, _) => Close();
         layout.Children.Add(message); retry.Click += async (_, _) => await StartAsync();
         Loaded += async (_, _) => await StartAsync(); Closing += OnClosing;
+        if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
+        {
+            SourceInitialized += (_, _) => ApplyCaptionColors();
+            Activated += (_, _) => ApplyCaptionColors();
+            Deactivated += (_, _) => ApplyCaptionColors();
+            SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
+            Closed += (_, _) => SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
+        }
     }
+
+    private void OnSystemParametersChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SystemParameters.HighContrast)) Dispatcher.InvokeAsync(ApplyCaptionColors);
+    }
+
+    private void ApplyCaptionColors()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == 0) return;
+        const uint systemColor = uint.MaxValue;
+        // DWM COLORREF is 0x00BBGGRR. High contrast restores both system colors.
+        uint background = SystemParameters.HighContrast ? systemColor : IsActive ? 0x00F4F4EAu : 0x00F5F4F1u;
+        uint foreground = SystemParameters.HighContrast ? systemColor : IsActive ? 0x00463712u : 0x00706451u;
+        DwmSetWindowAttribute(hwnd, 35, in background, sizeof(uint)); // DWMWA_CAPTION_COLOR
+        DwmSetWindowAttribute(hwnd, 36, in foreground, sizeof(uint)); // DWMWA_TEXT_COLOR
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(nint hwnd, int attribute, in uint value, uint size);
 
     private async Task StartAsync()
     {
+        Title = "OpsPilot-X · 로컬 연결 준비";
         retry.IsEnabled = false; status.Text = "구성 확인 · 로컬 서비스를 시작하고 있습니다…";
         nextAction.Visibility = Visibility.Collapsed;
         startup?.Dispose(); startup = new CancellationTokenSource(); var cancellation = startup.Token;
@@ -82,11 +113,18 @@ public sealed class MainWindow : Window
                 e.Request.Headers.SetHeader(DesktopPolicy.TokenHeader, process.Token);
             };
             core.ProcessFailed += async (_, _) => { if (!closing && ReferenceEquals(backend, process)) await FailAsync(new("앱 화면 프로세스가 종료되었습니다.", "다시 시도 버튼을 눌러 화면을 다시 여세요.")); };
+            void UpdateTitle()
+            {
+                if (!closing && ReferenceEquals(backend, process))
+                    Title = DesktopPolicy.WorkspaceTitle(origin, core.Source, core.DocumentTitle);
+            }
+            core.DocumentTitleChanged += (_, _) => UpdateTitle();
             core.NavigationCompleted += async (_, e) =>
             {
                 if (closing || !ReferenceEquals(backend, process)) return;
                 if (!e.IsSuccess) { await FailAsync(new("로그인 화면을 불러오지 못했습니다.", "다시 시도 버튼을 눌러 화면을 다시 여세요.")); return; }
                 message.Visibility = Visibility.Collapsed; if (web != null) web.Visibility = Visibility.Visible;
+                UpdateTitle();
             };
             core.Navigate(origin.AbsoluteUri);
         }
@@ -99,6 +137,7 @@ public sealed class MainWindow : Window
     {
         if (closing) return;
         startup?.Cancel();
+        Title = "OpsPilot-X · 시작 오류";
         status.Text = $"시작을 막은 이유\n{failure.Reason}";
         nextAction.Text = $"다음 행동\n{failure.NextAction}";
         nextAction.Visibility = Visibility.Visible;

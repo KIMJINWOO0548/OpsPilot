@@ -25,6 +25,12 @@ using (var protocolChild = Process.Start(backendStart)!)
 }
 var origin = DesktopPolicy.ReadyOrigin("{\"event\":\"ready\",\"origin\":\"http://127.0.0.1:12345\",\"token\":\"" + token + "\"}", token);
 Check(DesktopPolicy.IsOwnOrigin(origin, "http://127.0.0.1:12345/api"), "own request");
+const string approvedTitle = "OpsPilot-X · 승인함";
+Check(DesktopPolicy.WorkspaceTitle(origin, origin.AbsoluteUri, approvedTitle) == approvedTitle, "owned workspace title");
+Check(DesktopPolicy.WorkspaceTitle(origin, origin.AbsoluteUri, "OpsPilot-X · 승인함 A-103\n계정 정보") == DesktopPolicy.DefaultWindowTitle,
+    "unrecognized title is never reflected");
+foreach (var url in new[] { origin.AbsoluteUri + "api", origin.AbsoluteUri + "?q=A-103", "http://127.0.0.1:54321/" })
+    Check(DesktopPolicy.WorkspaceTitle(origin, url, approvedTitle) == DesktopPolicy.DefaultWindowTitle, "only owned root changes the title");
 foreach (var url in new[] { "https://127.0.0.1:12345", "http://localhost:12345", "http://127.0.0.1:12346", "file:///tmp/a", "javascript:alert(1)", "http://127.0.0.1:12345@evil.test" }) Check(!DesktopPolicy.IsOwnOrigin(origin, url), "external request");
 foreach (var url in new[] { "http://localhost:12345", "http://127.0.0.1:0", "http://127.0.0.1:12345/path", "http://127.0.0.1:12345?x=y", "http://user@127.0.0.1:12345" }) Reject(() => DesktopPolicy.ReadyOrigin(System.Text.Json.JsonSerializer.Serialize(new { @event = "ready", origin = url, token }), token));
 foreach (var url in new[] { "http://127.1:12345", "http://2130706433:12345", "http://127.0.0.1:012345" })
