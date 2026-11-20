@@ -71,7 +71,7 @@ DB에는 계정 hash·세션·근거·초안·감사·mock 영수증이 함께 �
 .venv/Scripts/python.exe scripts/backup_db.py restore --source ./backups/snapshot.sqlite3 --destination ./recovered.sqlite3
 ```
 
-원본은 읽기 전용으로 열고 임시 파일에서 integrity_check·필수 table을 검증한 뒤 overwrite 없이 게시한다. 실패 시 해당 임시 파일만 지운다. hard link를 지원하는 같은 파일 시스템이 필요하며 지원하지 않으면 실패로 종료한다. 복원본의 모든 세션을 폐기하므로 다시 로그인해야 한다. 계정 disabled/password·감사·초안은 snapshot 시점으로 돌아간다. 백업 이후 비활성화한 계정·변경한 암호가 복원으로 되돌아갈 수 있으므로 외부 포트 연결 전에 회수 목록과 계정 상태를 대조해야 한다. 기존 운영 DB 파일의 교체/삭제·실계정 변경은 자동 수행하지 않는다. 암호화·offsite 보관·보존 정책·실운영 재해 복구 시간은 미검증이다.
+원본은 읽기 전용으로 열고 임시 파일에서 integrity_check·필수 table을 검증한 뒤 overwrite 없이 게시한다. Windows는 새 목적지로 rename, 다른 OS는 같은 파일 시스템의 hard link를 사용한다. 실패 시 임시 파일만 지운다. 복원본은 모든 세션을 폐기하고 모든 기존 계정을 비활성화한다. 대기 초안은 EXPIRED, 실행 전 승인도 백업 이후 실행 여부를 알 수 없어 UNKNOWN_RECONCILE로 격리한다. 영수증과 감사 기록은 보존한다. 기존 계정의 자동 재활성화는 없다. 최신 권한과 실행 이력을 대조한 뒤 별도로 운영 재개를 결정한다. 수동 DB 파일 교체는 격리를 적용하지 않으므로 지원하지 않는다. 암호화·offsite 보관·보존 정책·실운영 재해 복구 시간은 미검증이다.
 
 ## 계정 회수와 세션 폐기
 

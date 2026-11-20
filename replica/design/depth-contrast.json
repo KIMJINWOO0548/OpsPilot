@@ -1,0 +1,22 @@
+[
+  {
+    "fg": "text",
+    "bg": "surface",
+    "size": "normal",
+    "ratio": 7.09,
+    "aa": true,
+    "aaa": true,
+    "fg_hex": "#445367",
+    "bg_hex": "#f0f4f8"
+  },
+  {
+    "fg": "focus",
+    "bg": "surface",
+    "size": "ui",
+    "ratio": 4.41,
+    "aa": true,
+    "aaa": true,
+    "fg_hex": "#087e80",
+    "bg_hex": "#f0f4f8"
+  }
+]

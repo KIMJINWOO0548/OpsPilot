@@ -1,0 +1,55 @@
+{
+  "executed_at_utc": "2026-11-02T13:59:52.383083+00:00",
+  "baseline": {
+    "pytest": "167 passed, 1 existing Starlette/httpx deprecation warning",
+    "smoke_demo": "pass",
+    "eval_smoke": "8/8 synthetic only; not benchmark"
+  },
+  "regression": {
+    "path": "tests/test_proposal_evidence_acl.py",
+    "red": "10 failed: missing evidence_reviewable field on baseline API",
+    "green": "10 passed, 1 existing warning",
+    "coverage": [
+      "current evidence readiness true",
+      "ACL revoke/delete/current expiry readiness false for pending and approved; GET state unchanged",
+      "stored action tamper readiness false",
+      "hidden metadata absent for revoked reviewer",
+      "receipt reconciliation after revoke succeeds with one work order"
+    ]
+  },
+  "browser": {
+    "cases": [
+      "현재 접근 가능한 초안의 독립 승인 가능",
+      "현재 근거를 확인할 수 없는 대기 초안은 조작 차단 및 비노출",
+      "승인 후 근거 회수 시 최초 mock 실행 차단",
+      "근거 회수 후에도 영수증 복구 가능, mock 작업은 한 건 유지",
+      "409 근거 변경 응답 이후 상세·목록·대기 수 동기화",
+      "다른 요청 조회 실패 시 이전 초안 조작 제거, GET 재조회로 복구",
+      "390px 모바일에서 근거 확인 불가 안내·차단 화면 가로 넘침 없음",
+      "렌더링 중 JavaScript 예외 없음"
+    ],
+    "javascript_errors": [],
+    "method": "Real FastAPI + synthetic SQLite fixtures, headless system Chromium via Playwright"
+  },
+  "transport": {
+    "case": "Committed execute response dropped; detail GET also fails; stale actions removed; row retry reads succeeded without another POST",
+    "execute_post_attempts": 1,
+    "work_orders": 1,
+    "succeeded_audit_events": 1,
+    "javascript_errors": []
+  },
+  "frontend": {
+    "command": "pnpm test",
+    "result": "5 passed",
+    "permission_checks": "Authorization negatives explicitly pass evidenceReviewable=true so default false cannot mask owner/role/approver identity regressions"
+  },
+  "source_edits": [
+    "tests/test_proposal_evidence_acl.py",
+    "web/src/helpers.test.ts"
+  ],
+  "limitations": [
+    "Linux synthetic fixture and Chromium verification only; no Windows WPF/setup runtime or production validation",
+    "Browser behavioral capture predates final copy-only summary label/warning wording adjustment"
+  ],
+  "cleanup": "Temporary QA backend on port 8765 stopped; no real accounts or external credentials used"
+}

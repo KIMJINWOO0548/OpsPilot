@@ -1,0 +1,93 @@
+{
+  "recorded_at_utc": "2026-11-02T15:41:45.637412+00:00",
+  "base_revision": "5bd503f87a8e6098e3873bcba9ff691c94d9fcda",
+  "preserved_branch": "feat/proposal-review-readiness",
+  "feature_branch": "feat/temporal-decision-comparison",
+  "feature": "Fixed effective time, two known-as-of snapshots with state/action/authorized citation differences",
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "node": "24.19.0",
+    "pnpm": "11.25.0"
+  },
+  "checks": {
+    "baseline": {
+      "pytest_passed": 169,
+      "frontend_passed": 5,
+      "mock_e2e": "pass",
+      "synthetic_cases_passed": 8
+    },
+    "comparison_regressions": {
+      "initial_red_failed": 15,
+      "reason": "404 route absent",
+      "final_green_passed": 21
+    },
+    "full_pytest": {
+      "command": ".venv/bin/python -m pytest -q",
+      "passed": 190,
+      "failed": 0,
+      "warnings": 1,
+      "seconds": 34.21
+    },
+    "frontend": {
+      "command": "pnpm --dir web test",
+      "passed": 5
+    },
+    "build": {
+      "command": "pnpm --dir web build",
+      "exit_code": 0
+    },
+    "ruff": {
+      "command": ".venv/bin/ruff check src tests scripts",
+      "exit_code": 0
+    },
+    "mock_e2e": {
+      "command": ".venv/bin/python scripts/smoke_demo.py",
+      "exit_code": 0
+    },
+    "synthetic_smoke": {
+      "command": ".venv/bin/python scripts/eval_smoke.py",
+      "passed": 8,
+      "is_benchmark": false
+    },
+    "contract_example": {
+      "command": ".venv/bin/python scripts/eval_compare.py evaluation/examples/contract_v1/experiment.json",
+      "exit_code": 0,
+      "model_runs": 0
+    },
+    "package": {
+      "command": ".venv/bin/python scripts/check_package.py",
+      "required": 24,
+      "missing": 0
+    },
+    "dependency_check": {
+      "command": ".venv/bin/python -m pip check",
+      "exit_code": 0
+    },
+    "browser_independent_qa": {
+      "checks_passed": 12,
+      "page_exceptions": 0,
+      "business_rows_changed_by_comparison": false
+    },
+    "independent_patch_review": "No blocking introduced correctness defect; comparison21, prior ACL/evidence17 and frontend5 rerun passed"
+  },
+  "source_sha256": {
+    "src/opspilot_x/api.py": "b1fd37d5e7888351b3fa2f1d9b836bbcfc4e23fa8794da345bb706657c674092",
+    "src/opspilot_x/schema.py": "293bd5c314437a875945c1dbcc51626dc697d4c9f2f62e5d5548a8f45d4f382e",
+    "src/opspilot_x/comparison.py": "4b17be573af740a9e84ca3a7eae210d40e21232db59e8342d0d42b18d7877097",
+    "src/opspilot_x/evidence_store.py": "42e73622bf237d0e9b351f2e5a0eff535085a6d25fef511be126d3bdc5e09de0",
+    "tests/test_analysis_compare.py": "2848b561ea39ed6070a2c668b4bacec9d7e8ed432ac0f6ed37e916715e6eb8f8",
+    "web/src/main.tsx": "06c728841ded1f8f815e0a160228b637fd9ad7f243c751e94d5472b415f5cb7f",
+    "web/src/styles.css": "8c8b4ea0013111481b8c86c6594b74a333db1cb6317be3317c8068cc42800db3"
+  },
+  "publication": {
+    "attempted_this_cycle": false,
+    "reason": "Earlier GitHub create_branch403 Resource not accessible by integration remains unresolved; no retry, other auth, push, PR or CI run."
+  },
+  "limitations": [
+    "Current ACL used for both snapshots; historical user permissions are not reconstructed.",
+    "Synthetic deterministic analysis only; no equipment-impact model, LLM, external data, paid service or external write.",
+    "No Windows WPF/setup runtime or hosted deployment verification.",
+    "Existing Starlette/httpx deprecation warning remains."
+  ]
+}

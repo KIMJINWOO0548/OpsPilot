@@ -1,0 +1,33 @@
+{
+  "url": "http://127.0.0.1:18213",
+  "checks": {
+    "changed_side_by_side_without_draft_action": true,
+    "unchanged_result_and_input_invalidation": true,
+    "loading_status_and_controls_disabled": true,
+    "error_alert_and_stale_result_cleared": true,
+    "reverse_order_korean_error": true,
+    "mobile390_no_document_overflow": true,
+    "viewer_hidden_asset_empty_no_metadata": true
+  },
+  "screenshots": [
+    "docs/design/temporal-comparison-2026-11-02/03-comparison-empty.png",
+    "docs/design/temporal-comparison-2026-11-02/04-comparison-changed-panel.png",
+    "docs/design/temporal-comparison-2026-11-02/05-comparison-unchanged.png",
+    "docs/design/temporal-comparison-2026-11-02/07-comparison-error.png",
+    "docs/design/temporal-comparison-2026-11-02/08-comparison-changed-mobile.png"
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "page_errors": [],
+  "injections": [
+    "Fetch request held before continuing to real API for loading screenshot",
+    "Synthetic HTTP503 JSON response to verify rendered failure state; expected browser network error"
+  ],
+  "mobile_dimensions": {
+    "client": 390,
+    "scroll": 390
+  },
+  "screenshots_note": "Selected final feature captures retained; other state assertions are recorded above.",
+  "cleanup": "Temporary design backend18213 stopped."
+}

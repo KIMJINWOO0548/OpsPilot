@@ -1,0 +1,11 @@
+feature,area,priority,original,clone,notes
+Review action before execution,review,must,yes,partial,Mock-only action executor
+Approve or reject,review,must,yes,yes,Independent approver and current evidence gate
+Edit proposed action,review,should,yes,no,Requires new draft; no in-place edit
+Respond to ask-user tool,review,could,yes,no,No agent tool integration
+Persist and resume execution,recovery,must,yes,partial,SQLite mock receipt recovery only
+Per-call batched decisions,execution,should,yes,no,Single proposal scope
+Production durable checkpointer,recovery,should,yes,no,No distributed checkpointer
+Saved-clock comparison handoff,temporal,must,no,yes,Exact saved clocks read-only
+Fresh analysis after comparison,temporal,must,no,yes,Separate draft and independent approval
+Current evidence ACL on review,safety,must,no,yes,Existing regression preserved

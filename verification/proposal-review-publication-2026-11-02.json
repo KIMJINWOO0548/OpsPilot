@@ -1,0 +1,18 @@
+{
+  "recorded_at_utc": "2026-11-02T14:04:24.189635+00:00",
+  "action": "github_create_branch",
+  "target": "KIMJINWOO0548/OpsPilot:refs/heads/feat/proposal-review-readiness",
+  "base_sha": "caa8902afee209ad2b59aab883b49d114c3a586c",
+  "tested_implementation_commit": "72978b04d71b807f32411abed5c5b7b77e94e4cb",
+  "result": "denied",
+  "http_status": 403,
+  "reason": "Resource not accessible by integration",
+  "remote_feature_branch_present_after_denial": false,
+  "remote_main_sha_after_denial": "caa8902afee209ad2b59aab883b49d114c3a586c",
+  "retry_or_bypass_attempted": false,
+  "push_performed": false,
+  "pr_created": false,
+  "new_remote_ci_run": false,
+  "remaining_blocker": "Existing GitHub integration write access must be resolved before branch publication; no new credentials created.",
+  "verification": "Read-only git ls-remote and connector search_branches confirmed no feature branch."
+}

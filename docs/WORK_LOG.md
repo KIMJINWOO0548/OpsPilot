@@ -1,5 +1,11 @@
 # Dev / Research Work Log
 
+## 2026-11-20 — 승인 요청 기한과 교대 승인함
+
+격리 작업 사본에서 초안 복구 요청에 선택 검토 기한을 연결하고 기존 DB에 nullable 필드를 추가했다. 연체 목록은 조회 시각보다 기한이 앞선 승인 대기만, 기한 미지정 목록은 null인 승인 대기만 표시한다. 목록과 건수의 대상은 현재 ACL에서 볼 수 있는 항목으로 한정했다. 규칙 변경에 따른 만료 상태와 인수·승인 정책은 기존 동작을 유지한다.
+
+변경 전 표준 Windows 실행은 소켓 오류 10014를 기록했다. 초기화 재시도 래퍼로 집중 API 54개와 전체 258개가 통과했으며 전체의 브라우저 3개를 별도 실행해 모두 통과했다. Chrome과 합성 ASGI 앱을 연결해 키보드 필터·기한 미지정·권한 회수 후 지연 감사 폐기를 확인했다. `pnpm test` 9개, `pnpm build`, `scripts.smoke_demo`, `scripts/eval_smoke.py`의 합성 8개도 통과했다. 실제 데스크톱 백엔드 자식 재시작은 기한 유무를 나눠 확인했다. 첫 시도는 소켓 오류 10014로 한 경우가 실패했으며, 두 번째 별도 실행에서 두 경우 모두 통과했다. WPF 설치 앱 화면과 실제 교대 운영은 별도 검증 범위다.
+
 ## 2026-11-07 — 개발 안내와 필수 파일 검사
 
 시작 안내를 `START_HERE.md`, 단계별 작업을 `docs/development/`에 정리하고 현재 서버 인증·근거 권한·mock 실행 범위와 연결했다. 기존 안전 계약·권한·승인·멱등성·합성 평가 원본은 유지한다. 개발 안내 누락을 검사하지 못하는 새 회귀 1건을 먼저 재현한 뒤 필수 경로를 갱신했다. 임시 사본에서 다른 작업 디렉터리로 검사를 실행하고 개발 안내 또는 `AGENTS.md` 누락을 거부하는 3건을 확인했다.
@@ -150,3 +156,113 @@ R1 중복·R3 실자료누수·R4 정상업무coverage·R5 외부benchmark 적�
 위험 재검토: R1 중복 연구·R3 누수·R4 과도한 보류·R5 benchmark 부적합은 실원본/독립 라벨/B0~B4 실험 부재로 그대로다. R2 범위는 기존 런타임·UI 검증에 한정했다. 새로 확인한 동작 오류는 없으나 **Windows native socket 원인, 재시작 범위, Desktop 종료 원인·장기 안정성**은 미해결이다. 다음은 해당 OS 경계 해소·실제 CI/HTTPS 수용이며, G0 자산 권리/다운로드 범위·G1 독립 검토를 확보한 뒤 실제 lexical B0부터 측정한다. 외부 배포·연구 수용·95점은 계속 보류다.
 
 마지막 정적 확인: `python scripts/check_package.py` exit0(필수24개 누락0), 보고서의 Windows 수치/exit·Linux 날짜·임시 컨테이너 제거·미배포 상태 assertion 통과, 앱 입력36개 hash 일치, 문서7개의 로컬 링크 누락0이었다. 별도 읽기 전용 검토도 같은 수치·117개 링크를 확인했다. UI/앱 코드는 바뀌지 않아 Linux 전체 테스트·frontend build를 문서 변경 뒤 반복 실행하지 않았다.
+
+## 2026-11-02 · UI02 현재 근거 검토 상태와 승인함 동기화
+
+공개 OpsPilot의 `caa8902`를 별도 클라우드 폴더에 복제하고 기능 브랜치에서 작업했다. DocFlowLab·원본 PC·사용자 DB는 수정하지 않았다. 개발·디자인·독립 QA·최종 코드 검토 역할을 나눴다. 기존 G0/G1은 외부자료 권리/독립 라벨이 미확보여서 연구 완료를 선언하지 않으며, 이번 단위는 이미 구현된 승인 흐름의 확인 가능한 결함으로 제한했다. 새 라이브러리·실제 쓰기 도구·실계정·외부자료·과금은 추가하지 않았다.
+
+문제: 검토자 ACL 회수·근거 변경 시 API는 변경 요청을 거부했지만 UI가 빈 근거를 원본에서 확인하라고 안내하며 승인/최초 실행을 활성화했다. 현재 principal·저장 action/fingerprint·최신 근거를 확인하는 `evidence_reviewable`과 명시적 잠금/재조사 안내를 연결했다. 숨겨진 문서의 사유·메타데이터는 노출하지 않는다. GET으로 제안 상태를 변경하지 않으며, 원 승인자의 기존 영수증 복구를 유지한다. 오류/새로고침 뒤 목록·상세를 함께 갱신하고 조회 실패 시 이전 조작을 제거한다.
+
+검증: 초기 pytest 미설치 후 기존 lock으로 venv를 구성했다. pnpm 기본 캐시가 쓰기 불가여서 `/tmp`의 XDG/store 경로로 설치했고 잠금 파일은 바꾸지 않았다. baseline `pytest -q`167개·두 스모크 통과. 새 API 회귀10실패/프런트1실패 → API10통과/프런트5통과. 최종 `pytest -q`169통과(기존 경고1), Ruff·`pnpm build`·`smoke_demo.py`·`eval_smoke.py`합성8/8·`eval_compare.py`계약예제·`check_package.py`필수24개·`pip check`·`git diff --check` 통과. 정답 fixture 계약/스모크는 연구 성능이 아니다.
+
+실제 Chromium은 정상 승인 가능, 권한 회수 후 승인/최초 실행 잠금, 복구 유지,409 뒤 건수 동기화, 재조회 실패 뒤 이전 버튼 제거를 확인했다. 실행 응답과 상세 GET을 함께 유실시켜도 GET 재선택으로 복구하며 실행POST1회·작업1건을 유지했다.390px 문서 넘침과 관측 JS 예외가 없었다. 최종 문구 조정 뒤 디자인 화면을 재캡처했고 임시 서버3개는 종료했다. [증거·화면·재현 경로](design/REVIEW_READINESS_2026-11-02.md).
+
+현재 준비 상태는 조회 순간의 안내이며 서버 변경 검증이 최종 권한이다. Windows WPF·설치기·운영 전체 안전성·G0/G1 연구 수용은 검증하지 않았다. GitHub에는 기존 승인된 connector 권한으로 기능 브랜치를 게시하고 정확한 remote revision/CI를 별도로 확인한다. main merge·release·visibility 변경은 하지 않는다.
+
+게시 결과: 기능 브랜치 생성 API가403 `Resource not accessible by integration`으로 거부됐다. 원격 브랜치 부재·main `caa8902` 유지 확인. 허용되지 않은 쓰기를 우회/재시도하지 않았고 push·PR·새CI는 실행되지 않았다. 구현 커밋 `72978b0`과 후속 거부 기록 커밋을 로컬에 보존하고 binary patch·Git bundle·소스ZIP을 생성했다. [정확한 요청·결과](../verification/proposal-review-publication-2026-11-02.json). 기존 연동의 쓰기 접근이 해소되면 보존한 기능 브랜치를 정상 게시해야 한다.
+
+## 2026-11-06 승인 입력 맥락 확인
+
+- 공개 LangChain HITL의 실행 전 인자 검토 패턴을 [좁은 범위](../replica/recon.md)로 분석했다. 기존 승인함에서 누락되던 초안의 claim_key/effective_at/known_as_of를 현재 근거 권한 검증 뒤 review_context로 반환하고 KST로 표시한다.
+- 독립 승인·fingerprint·기존 근거 ACL·실행/복구는 유지한다. 권한 회수 시 review_context=null이며 조회는 상태·감사·mock 원장을 쓰지 않는다.
+- RED: 신규 2개 테스트 모두 review_context KeyError, exit 1(호스트 실행). 구현 후 전체 검증 및 제한은 replica/verification.md에 기록한다. 초기 sandbox TEMP 생성 오류와 TestClient 정지는 검증 성공으로 계산하지 않았다.
+- 형제 temporal-decision-comparison 브랜치는 ancestor가 아니며 병합하지 않았다. 기존 proposal-review-readiness 기준을 보존했다.
+
+최종 호스트 확인: 전체 pytest 171 passed(기존 경고 1), smoke E2E PASS, eval_smoke 합성8/8, 모두 exit 0. TypeScript noEmit exit 0. 브라우저 시각/WPF/운영 수용은 별도이며 미실행이다.
+## 2026-11-02 · A05 관측 시점별 판정 변화 비교
+
+사용자가 버그/UI뿐 아니라 프로젝트의 실제 핵심 기능 발전을 요청해 기존5bd503f를 보존한 `feat/temporal-decision-comparison`을 만들었다. 개발·디자인·독립 QA가 기존 API/실제 A-104 흐름을 각각 확인했다. 실행 사전 점검은 기존 준비 상태·mock 실행과 중복되고 설비 영향 모델이 없으며, 요청별 감사 이력도 이미 있어 새 기능으로 포장하지 않았다. Product Design get-context 브리프와 후보 검토로 고정 유효 시점·두 관측 시점의 판정 비교를 선정하고 [ADR-005](decisions/ADR-005-TEMPORAL-COMPARISON.md)에 이유·수용 조건을 먼저 기록했다. 제공된 skill context preflight 스크립트 리소스는 읽기 불가라 저장 컨텍스트를 사용한 것으로 표시하지 않았다.
+
+구현: 비교 입력/응답 타입·순서/timezone 검증, 읽기 전용 비교 API, 상태/조치/인용 전체 metadata의 결정적 차이 계산을 추가했다. 두 조회를 같은 query_only SQLite 트랜잭션으로 묶고 각 cutoff의 SQL ACL/known 선필터를 유지한다. 타임라인에는 두 결과·인용 변화·A104 예시·현재ACL 안내와 오류/빈/로딩 상태를 연결했다. 비교 결과를 초안 생성/승인에 연결하지 않는다. 새 라이브러리·계정 권한·외부 자료·실제 명령·배포·과금은 없다.
+
+검증: baseline169개·두 스모크·frontend5개 통과. 초기 새15개404 RED → endpoint/동일snapshot/metadata/order 포함 최종21개 GREEN. 중간 전체185개 이후 추가5개 테스트를 포함해 최종 전체190개(34.21s, 기존 Starlette/httpx 경고1)·frontend5개·TypeScript/build·Ruff·mock E2E·합성8/8·평가계약예제·필수파일24개·pip check·diff 검사 통과. 합성/fixture 결과는 연구 성능이 아니다.
+
+독립 Chromium12개 검사에서 과거 판단과 사후 정정, 변경 없음/충돌/비인가 빈 결과, 오류/재시도·결과 초기화,390px를 확인했다. 비교 전후 제안/작업/감사 전체 행 불변과 기존 UNKNOWN 영수증 동일ID 복구·작업1건을 검증했다. 두 읽기 사이 ACL 회수는 같은 snapshot을 유지하고 다음 요청에 반영했다. 디자인 화면의 의도적503 콘솔1건과 페이지 예외0을 구별했다. 별도 코드 검토도 차단 결함 없이 비교21·기존 ACL/근거17·frontend5를 재실행했다. [화면·재현·검증 파일](design/TEMPORAL_COMPARISON_2026-11-02.md).
+
+현재ACL 기반 합성 비교이며 과거 사용자 권한 이력·실제 설비 영향·외부 벤치마크·G0/G1 연구 수용은 아니다. Windows WPF/설치기는 미검증이다. 임시8765/18213 서버는 종료했다. GitHub create_branch403은 미해결로 이번 원격 쓰기/다른 인증/재시도/CI/배포는 전혀 시도하지 않았다. 이전 브랜치5bd503f와 복구 패키지는 보존하고 새 기능 커밋·별도 패치/번들/ZIP을 준비한다.
+
+## 2026-11-06 phase2 temporal review integration
+Preserved sibling temporal comparison and phase1 review_context/readiness through normal merge. Added exact saved-clock comparison and fresh-current-analysis handoffs. [Audit/tests/gaps](../replica/depth-review.md). Frontend6 and noEmit passed; host full-suite193 passed. No production or research gate advancement.
+
+Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
+
+Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.
+
+## 2026-11-09 · 영수증 누락 재실행 차단 (독립 증분)
+
+공식 원격 기준 `1427ff11f01edd486e7e39d62e5a088530015882`에서 별도
+`improve/execution-recovery-20261109`를 만들었다. 접근 제한 보존본 `b4c3d65`나
+Space 자료를 읽거나 복원·대체하지 않았다. 기존 사용자 작업·기준 이력·UI를 보존했다.
+
+UNKNOWN/SUCCEEDED가 영수증을 잃은 상태에서 execute가 새 모의 작업을 만드는 경로와,
+reconcile 응답은 UNKNOWN인데 저장 상태는 SUCCEEDED인 불일치를 수정했다.
+영수증이 없는 APPROVED만 최초 실행하며 불명 상태에서는 새 작업을 만들지 않는다.
+SUCCEEDED→UNKNOWN 전환과 감사는 같은 트랜잭션이고 반복 UNKNOWN은 새 감사를 쓰지 않는다.
+현재 세션·객체 범위·원 승인자·기존 영수증의 ACL 회수 후 복구 계약은 유지한다.
+
+실행: Python 3.12.14의 별도 venv에 기존 runtime pins와 dev 도구를 설치했다.
+수정 전 `pytest -q` 193 PASS와 `scripts/smoke_demo.py`, `scripts/eval_smoke.py`가 통과했다.
+새 8개는 4 FAIL/4 PASS RED 후 8 PASS였다. 전체 201 PASS, mock E2E PASS,
+합성8/8, Ruff PASS, 필수24파일 누락0이다. 기존 Starlette/httpx 경고1은 유지한다.
+원래 승인자 거부·INSERT 전/commit 전 전체 rollback·혼합 동시 재시도·원 영수증 복구를
+임시 DB에서 검사했고, 검토 후 감사 개수 단언도 추가했다.
+
+실외부 서비스·별도 process crash·outbox·stale 예약·수동 해제 API·Windows·Docker·
+브라우저·운영 수용은 이번에 검증하지 않았다. 불명 상태에 대한 timeout/자동 재실행은 없다.
+[정확한 처리 경계](safety/EXECUTION_RECOVERY_2026-11-09.md)와 새 검증 JSON을 따른다.
+G2 방어 개선으로 G0/G1 연구 수용이나 G5 전체 완료를 선언하지 않는다.
+
+
+## 2026-11-16 Windows backup publication
+
+See [verified scope and remaining regression blocker](safety/WINDOWS_BACKUP_PUBLICATION_20261116.md).
+Atomic no-overwrite publication now uses Windows rename rather than hardlink;
+focused backup/recovery 17 PASS, synthetic E2E PASS, full 201 PASS / 1 desktop-runner failure.
+
+Follow-up: correct editable installation restored isolated desktop execution22/22;
+complete normal-runner regression202/202 passed in172.29s with one deprecation warning.
+Earlier Windows10014 initialization errors remain documented separately.
+
+## 2026-11-16: Recovery receipt integrity
+- Original requirement: approval target/evidence binding, duplicate execution prevention, unknown-state reconciliation.
+- Reproduced defect: execute/reconcile accepted a receipt whose action differed from the approved proposal; reconcile accepted a changed idempotency key (3 failing regressions before the fix).
+- Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
+- Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
+- Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.
+
+## 2026-11-16 · OP1/OP2/OP7 초안·인계 후속
+
+- 감자 PC의 원본 장부와 바탕화면 패키지·기존 Git 개선본·원격을 대조했다. 원격의 기존 개선 브랜치와 로컬 기준은 `dd4bc206`이었다. 원본과 기존 작업공간의 미추적 파일, main, 설치기·패키징을 작업 범위에서 제외했다.
+- [ADR-005](decisions/ADR-005-DRAFT-HANDOVER.md): 초안 요청키/입력 해시와 실행 키를 분리하고, 기존 콘솔을 서버 미완료 요청에 연결했다. 활성 승인자 인계·버전 경쟁·재승인·취소·원 영수증만 복구를 구현했다. 감사 실패는 상태 변경과 함께 롤백한다. 오래된 복원본은 계정과 실행 가능 상태를 격리한다.
+- 실패 먼저 확인: API 수용 8건 실패, 승인 직전 계정 회수에도 승인 200, 복원 격리 9건 실패. 독립 검토로 브라우저 저장소의 다중 창 경쟁과, 정리한 미사용 키가 다시 실행 가능한 초안을 생성하던 경계를 발견했다. 저장 요청을 서버 직렬화로 옮기고 후자를 실패 테스트(201→409)로 막았다.
+- 집중 검증: 별도 API 수용 17건, 복원 18건, 권한 재검증·서로 다른 로컬 포트·실제 데스크톱 API 재시작을 검증했다. 일부 별도 재실행에서는 Windows의 간헐적 WinError 10014가 재현되어 실행 로그를 보존했다. 기존 기준 자체도 최신 재실행 219 통과/1 오류였다. Chrome에서 기존 화면의 요청 유실·새 프로세스/포트에서 재시도·인계/취소·재조정을 확인했다. 이 브라우저 증거를 새 설치 패키지 검증으로 간주하지 않는다.
+- [원본 기준 대응표](safety/DRAFT_HANDOVER_ACCEPTANCE_20261116.md). G0/G1 수용, 실제 외부 업무, 운영 계정, 새로운 디자인, 설치기 배포는 범위 밖이다. R2는 기존 승인·복구 경계로 제한했고 R1/R3/R4/R5에 대한 새 연구 성능 추론은 하지 않았다.
+
+## 2026-11-20 격리 Windows 검증
+- c92b0cd를 보존했다. dd4bc20은 조상 커밋이다. 기존 초안 재시도, 실제 프로세스 재시작, 권한 있는 승인자 인계, 영수증 복구를 다시 검증했다.
+- 새 승인 시 기존 audit_details에 정확한 인용 ID·버전·체크섬을 승인 트랜잭션 안에서 저장한다. 감사 화면에서 이후 개정 뒤에도 승인 당시 원문을 연다. 현재 tenant/team/role ACL과 원문 체크섬을 확인하고, 회수된 자료의 내용·참조 메타데이터를 노출하지 않는다. 과거 참조가 없는 승인은 조회 불가로 표시하며 이력을 만들지 않는다. DB 스키마 변경은 없다.
+- 독립 회귀는 approved_documents 누락으로 실패한 뒤 수정 후 통과했다. 인계·원문 집중 검사 19개 통과, TypeScript·빌드 통과. 실제 Chromium에서 원문 열기·권한 회수 후 숨김·모바일 가로 넘침 없음 확인(합성 API 응답을 가로채는 UI 검사, 백엔드는 별도 검사).
+- 최종 전체 검사 250 통과·1 실패: 자식 Desktop 프로세스 초기화 WinError 10014. 해당 실제 재시작 검사는 1회 복구 재실행에서 통과했다. 수정 전 래퍼 전체 검사는 250 통과. 소켓 초기화만 재시도하는 기존 래퍼를 사용했으며 호스트 오류를 해결했다고 주장하지 않는다. 프런트 helper 8개·스모크·합성 평가 통과.
+- 격리 작업공간 outputs/opspilot에 모든 실행 로그를 보관했다. 프로덕션·설치기·원격 CI·연구 수용은 미검증이다.
+
+## 2026-11-20 승인함 응답 오류 복구
+
+- HTTP 200으로 HTML을 받은 승인함에서 감사 목록 렌더링이 중단되는 현상을 Chromium에서 재현했다. JSON 해석 실패와 잘못된 작업 목록·감사 기록을 조회 오류로 표시하고, 상세 응답의 요청 ID를 확인한 후 화면에 반영한다.
+- `node node_modules/typescript/bin/tsc --noEmit`, `node node_modules/vite/bin/vite.js build --configLoader runner`, `node --experimental-strip-types --test src/helpers.test.ts` 통과. 격리 합성 API와 Chrome에서 HTML 및 `items: null` 응답을 주입해 오류 안내와 재조회 복구를 확인했다. 수정 후 브라우저 예외 0회. 실행 로그는 격리 작업공간 `outputs/opspilot/response-integrity-*.log`에 있다.
+- Python 전체 249개 통과, 2개 실패. 실패는 모두 자식 프로세스의 Windows WinError 10014였다. 별도 재실행에서 상태 확인·정상 종료는 통과했고 데스크톱 재시작은 같은 오류로 막혔다. `-I`로 실행된 자식이 기존 가상환경의 등록 소스를 사용한 점을 로그에 남겼다. 수정본 API·Chrome 통합 검증은 별도로 통과했다.
+
+## 2026-11-20 · OP2 승인함의 권한별 행동
+
+기존 승인·인수·대조 명령에 읽기 전용 안내를 연결했다. 증거를 열람할 수 없는 요청은 상세·목록·감사 JSON에서 민감한 정보를 제거한다. 동일 버전 동시 인수와 세션 회수, 키보드로 영수증 대조, 역순 상세·로그아웃을 합성 자료로 검사했다. 변경 전 상태, 실제 실패·통과 로그와 검증 한계는 격리 작업공간의 `outputs/opspilot/implementation-result.md`에 있다.
+
+- 추가 Chrome 회귀에서 ACL 회수 전의 감사·목록 응답과 회수 후 상세 응답의 도착 순서를 교차했다. 상세에서 회수를 확인한 즉시 해당 목록을 제한하고, 뒤늦게 전달된 예전 원문을 제외하며 권한 복구 후 새 조회로 표시하는 것을 확인했다.

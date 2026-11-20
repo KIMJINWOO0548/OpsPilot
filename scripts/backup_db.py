@@ -21,6 +21,9 @@ def main(argv=None):
         print(f"{args.command.title()} failed: {exc}", file=sys.stderr)
         return 1
     print(f"{args.command.title()} complete; validated {result['tables_validated']} tables.")
+    if args.command == 'restore':
+        print('Accounts disabled; sessions revoked; pending and approved proposals quarantined. '
+              'Review current permissions and execution history before resuming operation.')
     return 0
 
 

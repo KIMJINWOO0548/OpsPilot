@@ -61,6 +61,33 @@ def assert_no_work_orders(path):
         assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone()[0] == 0
 
 
+def test_review_context_preserves_draft_clocks_without_writing(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    with closing(sqlite3.connect(path)) as db:
+        stored = json.loads(db.execute("SELECT request_json FROM proposals").fetchone()[0])
+        before = db.execute("SELECT * FROM audit").fetchall()
+    result = client.get(endpoint(proposal)).json()
+    assert result["review_context"] == {key: stored[key] for key in
+                                        ("claim_key", "effective_at", "known_as_of")}
+    assert result["state"] == "PENDING_APPROVAL"
+    with closing(sqlite3.connect(path)) as db:
+        assert db.execute("SELECT * FROM audit").fetchall() == before
+    assert_no_work_orders(path)
+
+
+def test_review_context_disappears_when_evidence_access_is_revoked(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    assert client.get(endpoint(proposal)).json()["review_context"] is not None
+    restrict_reviewer(path, source)
+    response = client.get(endpoint(proposal))
+    assert response.json()["review_context"] is None
+    assert response.json()["state"] == "PENDING_APPROVAL"
+    assert_no_hidden_metadata(response, source)
+    assert_no_work_orders(path)
+
+
 def test_detail_filters_before_evaluation_using_current_principal(review_case, monkeypatch):
     client, path, source, proposal = review_case
     restrict_reviewer(path, source)
@@ -79,6 +106,7 @@ def test_detail_filters_before_evaluation_using_current_principal(review_case, m
     monkeypatch.setattr(api, "evaluate", evaluate_visible)
     response = client.get(endpoint(proposal))
     assert response.status_code == 200
+    assert response.json()["evidence_reviewable"] is False
     assert response.json()["citations"] == []
     assert_no_hidden_metadata(response, source)
     assert seen and all(actor == "approver-1" and source.evidence_id not in ids
@@ -115,6 +143,10 @@ def test_changed_evidence_blocks_review_and_first_execution(
                 return (cutoff + timedelta(minutes=1)).astimezone(tz)
 
         monkeypatch.setattr(api, "datetime", Later)
+    detail = client.get(endpoint(proposal))
+    assert detail.status_code == 200
+    assert detail.json()["state"] == ("APPROVED" if stage == "execute" else "PENDING_APPROVAL")
+    assert detail.json()["evidence_reviewable"] is False
     response = (decision(client, proposal) if stage == "decision" else
                 client.post(endpoint(proposal) + "/execute", json={}))
     assert response.status_code == 409
@@ -128,6 +160,7 @@ def test_visible_sources_preserve_independent_approval_and_receipt_recovery(revi
     assert decision(client, proposal).status_code == 403
     login(client, "approver-1")
     detail = client.get(endpoint(proposal)).json()
+    assert detail["evidence_reviewable"] is True
     assert detail["fingerprint"] == proposal["fingerprint"]
     assert [item["evidence_id"] for item in detail["citations"]] == [source.evidence_id]
     assert decision(client, proposal).status_code == 200
@@ -135,9 +168,62 @@ def test_visible_sources_preserve_independent_approval_and_receipt_recovery(revi
     assert lost.json() == {"state": "UNKNOWN_RECONCILE", "receipt_id": None}
     # Receipt recovery must not repeat an external write after document ACL changes.
     restrict_reviewer(path, source)
+    unavailable = client.get(endpoint(proposal))
+    assert unavailable.json()["state"] == "UNKNOWN_RECONCILE"
+    assert unavailable.json()["evidence_reviewable"] is False
+    assert unavailable.json()["citations"] == []
+    assert_no_hidden_metadata(unavailable, source)
+    assert unavailable.json()["guidance"]["reason"] == "OUTCOME_UNKNOWN"
+    assert unavailable.json()["guidance"]["actions"] == ["CHECK_RECEIPT"]
     recovered = client.post(endpoint(proposal) + "/reconcile", json={})
     retry = client.post(endpoint(proposal) + "/execute", json={})
     assert recovered.status_code == retry.status_code == 200
     assert recovered.json()["receipt_id"] == retry.json()["receipt_id"]
     with closing(sqlite3.connect(path)) as db:
         assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("already_approved", [False, True])
+def test_detail_rejects_stored_action_tamper_before_mutation(review_case, already_approved):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    if already_approved:
+        assert decision(client, proposal).status_code == 200
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("UPDATE proposals SET action=? WHERE id=?",
+                   ("unapproved_action", proposal["proposal_id"]))
+    detail = client.get(endpoint(proposal))
+    assert detail.status_code == 200
+    assert detail.json()["state"] == ("APPROVED" if already_approved else "PENDING_APPROVAL")
+    assert detail.json()["evidence_reviewable"] is False
+    assert_no_work_orders(path)
+
+def test_restricted_projections_and_guidance(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    restrict_reviewer(path, source)
+    for url in [endpoint(proposal), "/api/v1/proposals", endpoint(proposal) + "/audit"]:
+        response = client.get(url)
+        assert response.status_code == 200
+        for secret in [source.asset_id, proposal["action"], proposal["fingerprint"], "engineer-1"]:
+            assert secret not in response.text
+    detail = client.get(endpoint(proposal)).json()
+    assert detail["guidance"] == {"version": 1, "reason": "EVIDENCE_UNAVAILABLE",
+                                  "actions": ["REINVESTIGATE"], "review_version": detail["review_version"]}
+    assert client.get(endpoint(proposal) + "/audit").json() == {"items": []}
+
+@pytest.mark.parametrize('suffix', ['detail', 'list', 'audit'])
+def test_read_rechecks_account_after_principal(review_case, monkeypatch, suffix):
+    from opspilot_x import auth
+    client, path, source, proposal = review_case
+    login(client, 'approver-1')
+    original = auth.session
+    def revoke_after_read(database, token):
+        user = original(database, token)
+        auth.disable_user(path, 'approver-1')
+        return user
+    monkeypatch.setattr(auth, 'session', revoke_after_read)
+    url = {'detail':endpoint(proposal),'list':'/api/v1/proposals','audit':endpoint(proposal)+'/audit'}[suffix]
+    response = client.get(url)
+    assert response.status_code == 401
+    assert source.asset_id not in response.text

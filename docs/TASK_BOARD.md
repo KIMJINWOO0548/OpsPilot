@@ -4,8 +4,14 @@
 
 **분류:** ✅ 코드/테스트 존재(스코프 제한), ◐ 부분, ⬜ 미구현. 각 칸은 실제 테스트 로그 후에만 변경.
 
+2026-11-16 원본 장부 OP1·OP2·OP7은 아래 프로젝트 내부 OP01·OP02와 다른 ID다. [초안·인계 수용표](safety/DRAFT_HANDOVER_ACCEPTANCE_20261116.md)에 제품/API와 검증 경계를 기록한다.
+
 | ID | Gate | 작업 | 의존성 | 현재 상태 | Done 정의 |
 |---|---|---|---|---|---|
+| OP4 | G2 | 연체·기한 미지정 승인함 | A04, UI02 | ✅ 합성 로컬 검증 | 기존 초안 요청과 DB를 보존하고 현재 권한에서 보이는 승인 대기만 집계한다. 기한 경계·ACL 회수·Chrome 키보드·인수 회귀 확인. |
+| OP03 | G2/G5 | 영수증 누락 시 재실행 차단 | A02,A04 | ✅ 로컬 모의 방어 경계 | UNKNOWN/SUCCEEDED 영수증 누락·앱 재생성·혼합 동시 재시도에서 새 작업 0건, 원 영수증 복구·원 승인자·알려진 rollback 유지. 신규8/전체201. [한계](safety/EXECUTION_RECOVERY_2026-11-09.md); 수동 해제·실외부/outbox 미구현 |
+| A05 | G2/G6 | 관측 시점별 판정 변화 비교 | A03,E01 | ✅ 합성 로컬 기능 | 같은 유효 시점·두 known cutoff의 상태/조치/허용 인용 차이, 같은 읽기DB snapshot·ACL·작업/감사 불변. 새21·Linux190·Chromium12검사. [수용](design/TEMPORAL_COMPARISON_2026-11-02.md) |
+| UI02 | G2/G6 | 현재 근거 검토 상태와 승인함 동기화 | A04,UI01 | ✅ 합성 로컬 범위 | 근거 검토 불가 시 승인·최초 실행 잠금, 복구 유지, 실패 후 상세/목록 동기화. Linux169·frontend5·Chromium 검사. [근거](design/REVIEW_READINESS_2026-11-02.md) |
 | A04 | G2/G5 | 현재 검토자 문서 ACL 재검증 | A03 | ✅ 격리 사본 | 인용·승인·최초 실행 결함3개 RED→GREEN. 삭제·시점 만료·독립 승인·영수증 복구 포함 새8개/전체167개 통과. [기록](safety/REVIEWER_EVIDENCE_ACL_2026-11-02.md) |
 | R00 | G0 | 연구/코드/라이선스 비교표 재검증 | 없음 | ◐ | 8종 공식 commit·코드 LICENSE·범위 기록; 데이터/weights 권리·명령 실행/재현 미확인 |
 | R01 | G0 | 독창성 가설/실패 조건 사전 등록 | R00 | ◐ | collision matrix와 R1~R5·단순화 조건 기록; 실제 B2/B3 대조로 novelty 검증은 미완료 |
@@ -65,3 +71,24 @@ ADR 및 WORK_LOG 업데이트: ...
 추가 남은 항목: Desktop이 다시 종료돼 앱 재실행으로 동일 컨테이너가 복구됐다. 장기 지속성/종료 원인·브라우저 연결 오류를 운영 수용 전에 확인한다. Windows socketpair는 복구 후 재검사도55/60 성공으로 오류가 남아 사용자 재부팅 뒤 확인해야 한다.
 
 2026-10-23 후속: 브라우저 연결은 Chrome에서 복구해 같은 이미지의 임시 DB로 로그인·현재 분석·타임라인·작성자 승인 잠금·독립 승인·mock 유실/복구·엔지니어의 충돌/과거 차단을 확인했다. 임시 컨테이너를 제거하고 서비스8000 로그인 화면을 열었다. Windows 새 실패와 재부팅 시각 불일치는 [최신 기록](../verification/reboot-final-2026-10-23.json)에 보존했다. 앱·테스트·의존성 코드는 변경하지 않았으며 앞선 Linux/빌드 결과와 입력 hash가 동일하다. G0/G1·95점·공개 배포 수용은 보류다.
+
+2026-11-06 후속: 저장된 승인 입력 맥락 표시 구현(API 투영, 기존 승인함, 권한 회수 회귀). 검증 기록은 replica/verification.md. 형제 시점 비교 브랜치 병합은 범위 밖이며 연구/운영 게이트 상태를 변경하지 않는다.
+
+2026-11-06 phase2: temporal sibling and current review context combined; explicit draft-comparison/current-analysis handoffs added. See replica/depth-review.md. G0/G1/production gates remain open; host193 tests and both smokes passed.
+
+Phase2 host verification completed:193pytest PASS, smoke PASS, synthetic8/8, frontend6 and noEmit PASS. Broader gates unchanged; see replica/depth-review.md.
+
+Phase2 Chromium156 verification completed: native keyboard flow,1440/390px document overflow0, no page exceptions. Synthetic API interception; backend tests separate. Evidence and remaining professional accessibility/production gaps: replica/depth-review.md.
+
+## 2026-11-16: Recovery receipt integrity
+- Original requirement: approval target/evidence binding, duplicate execution prevention, unknown-state reconciliation.
+- Reproduced defect: execute/reconcile accepted a receipt whose action differed from the approved proposal; reconcile accepted a changed idempotency key (3 failing regressions before the fix).
+- Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
+- Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
+- Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.
+
+2026-11-20 격리 QA: 승인 당시 문서 열기와 현재 ACL 필터를 구현했다. 검증 결과와 Windows 자식 프로세스 초기화 한계는 WORK_LOG.md에 기록했다. 프로덕션·연구 게이트는 미완료다.
+
+2026-11-20 후속 작업에서 승인함의 응답 오류 복구를 구현하고 Chrome으로 검증했다. WORK_LOG.md 참조.
+
+- [x] OP2 승인함에서 차단 사유와 서버가 허용한 행동 표시. API 회귀, 브라우저 키보드 대조·지연 응답, 타입 검사와 빌드를 격리 작업 사본에서 확인했다.
