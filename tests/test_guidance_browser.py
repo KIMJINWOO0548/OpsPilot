@@ -46,9 +46,21 @@ def test_filtered_approval_keeps_evidence_and_result_in_the_workspace(case, monk
             row.focus()
             page.keyboard.press('Enter')
             pw.expect(row).to_have_attribute('aria-current', 'true')
+            request_id = endpoint.split('/')[-1]
+            pw.expect(row).to_have_accessible_name(f"센서 진단 우선 · A-103 · 요청 {request_id[:14]}")
             evidence = page.locator('.approval-evidence')
             pw.expect(evidence).to_contain_text(draft['citations'][0]['source_id'])
             pw.expect(evidence).to_contain_text(f"v{draft['citations'][0]['source_version']}")
+            page.get_by_role('button', name='초안 이후 근거 변화 비교').click()
+            pw.expect(page.get_by_role('heading', name='관측 시점 비교')).to_be_visible()
+            return_button = page.get_by_role('button', name='요청 검토로 돌아가기')
+            pw.expect(return_button).to_be_enabled()
+            pw.expect(page.locator('.comparison-review-context')).to_contain_text(request_id[:14])
+            return_button.focus()
+            page.keyboard.press('Enter')
+            pw.expect(page.get_by_role('heading', name='요청 검토')).to_be_focused()
+            pw.expect(page.locator('.proposal-id')).to_have_text(request_id)
+            assert api.get(endpoint).json()['state'] == 'PENDING_APPROVAL'
             approve = page.get_by_role('button', name='검토 후 승인')
             pw.expect(approve).to_be_in_viewport()
             approve.focus()
@@ -265,6 +277,7 @@ def test_redacted_detail_discards_older_audit_and_list(case, monkeypatch):
             wait_for_stale = False
             page.get_by_role('button', name='상태 조회', exact=False).click()
             pw.expect(page.locator('.audit-list')).to_contain_text(original['evidence_id'])
-            pw.expect(page.locator('.proposal-link')).to_contain_text(asset)
+            pw.expect(page.locator('.proposal-list tbody tr')).to_contain_text(asset)
+            pw.expect(page.locator('.proposal-link')).to_have_accessible_name(f"센서 진단 우선 · {asset} · 요청 {endpoint.split('/')[-1][:14]}")
         finally:
             browser.close()

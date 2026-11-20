@@ -39,16 +39,19 @@ function App(){
  const [asset,setAsset]=useState('A-103'),[query,setQuery]=useState(''),[effective,setEffective]=useState(()=>kstInput()),[known,setKnown]=useState(()=>kstInput()),[assets,setAssets]=useState<string[]>([]);
  const [analysis,setAnalysis]=useState<Analysis|null>(null),[analyzedInput,setAnalyzedInput]=useState<Input|null>(null),[evidence,setEvidence]=useState<Evidence[]>([]),[searched,setSearched]=useState(false);
  const [laterKnown,setLaterKnown]=useState(()=>kstInput()),[comparison,setComparison]=useState<Comparison|null>(null);
+ const [comparisonRequestId,setComparisonRequestId]=useState<string|null>(null);
  const [proposals,setProposals]=useState<ProposalRow[]>([]),[selected,setSelected]=useState<Proposal|null>(null),[audit,setAudit]=useState<Audit[]>([]),[health,setHealth]=useState<boolean|null>(null);
  const [draftAttempt,setDraftAttempt]=useState<DraftAttempt|null>(null),[handoverReason,setHandoverReason]=useState('');
  const [reviewDue,setReviewDue]=useState(''),[reviewQueue,setReviewQueue]=useState<ReviewQueue>('all'),[queueAsOf,setQueueAsOf]=useState<string|null>(null);
  const [detailLoading,setDetailLoading]=useState(false);
  const queueFilter=useRef<ReviewQueue>('all');
  const proposalHeading=useRef<HTMLHeadingElement>(null);
+ const reviewHeading=useRef<HTMLHeadingElement>(null);
+ const returningToReview=useRef(false);
  const approvalFeedback=useRef<HTMLDivElement>(null);
  const sessionGeneration=useRef(0), detailGeneration=useRef(0), listGeneration=useRef(0);
  const restrictedAt=useRef(new Map<string,number>()), disclosureSequence=useRef(0), selectedId=useRef<string|null>(null);
- function clearData(){restrictedAt.current.clear();selectedId.current=null;queueFilter.current='all';++sessionGeneration.current;++detailGeneration.current;++listGeneration.current;setAssets([]);setAnalysis(null);setAnalyzedInput(null);setSelected(null);setDetailLoading(false);setAudit([]);setProposals([]);setEvidence([]);setSearched(false);setComparison(null);setDraftAttempt(null);setHandoverReason('');setReviewDue('');setReviewQueue('all');setQueueAsOf(null);}
+ function clearData(){restrictedAt.current.clear();selectedId.current=null;queueFilter.current='all';++sessionGeneration.current;++detailGeneration.current;++listGeneration.current;setAssets([]);setAnalysis(null);setAnalyzedInput(null);setSelected(null);setDetailLoading(false);setAudit([]);setProposals([]);setEvidence([]);setSearched(false);setComparison(null);setComparisonRequestId(null);setDraftAttempt(null);setHandoverReason('');setReviewDue('');setReviewQueue('all');setQueueAsOf(null);}
  async function api<T>(path:string,body?:unknown,headers:Record<string,string>={}):Promise<T>{
   const generation=sessionGeneration.current;
   const r=await fetch(path,{credentials:'same-origin',method:body===undefined?'GET':'POST',headers:{...(body===undefined?{}:{'Content-Type':'application/json'}),...(session?.csrf_token?{'X-CSRF-Token':session.csrf_token}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)}).catch(()=>{
@@ -73,8 +76,14 @@ function App(){
    ]);
   });
  },[session]);
+ useEffect(()=>{
+  if(page==='approval'&&returningToReview.current){
+   returningToReview.current=false;
+   reviewHeading.current?.focus();
+  }
+ },[page]);
  const input=():Input=>({asset_id:asset.trim(),claim_key:'inspection_priority',effective_at:toIso(effective),known_as_of:toIso(known)});
- function invalidate(){setAnalysis(null);setAnalyzedInput(null);setSearched(false);setEvidence([]);setComparison(null);setNotice('');}
+ function invalidate(){setAnalysis(null);setAnalyzedInput(null);setSearched(false);setEvidence([]);setComparison(null);setComparisonRequestId(null);setNotice('');}
  async function searchEvidence(req:Input){const params=new URLSearchParams({q:query,asset_id:req.asset_id,effective_at:req.effective_at,known_as_of:req.known_as_of});setEvidence((await api<{items:Evidence[]}>(`/api/v1/evidence?${params}`)).items);setSearched(true);}
  async function analyze(e:FormEvent){e.preventDefault();void run('근거 분석',async()=>{const req=input();setAnalysis(null);setAnalyzedInput(null);const result=await api<Analysis>('/api/v1/analysis',req);setAnalysis(result);setAnalyzedInput(req);await searchEvidence(req);setNotice('지정한 두 시점과 접근 권한을 기준으로 판정했습니다.');});}
  async function compareTimes(e:FormEvent){
@@ -93,9 +102,15 @@ function App(){
   if(!selected)return;
   const req=reviewComparisonInput(selected);
   if(!req)return;
-  invalidate();setAsset(req.asset_id);setQuery('');setEffective(kstInput(new Date(req.effective_at)));setKnown(kstInput(new Date(req.before_known_as_of)));setLaterKnown(kstInput(new Date(req.after_known_as_of)));setPage('timeline');
+  invalidate();setComparisonRequestId(selected.proposal_id);setAsset(req.asset_id);setQuery('');setEffective(kstInput(new Date(req.effective_at)));setKnown(kstInput(new Date(req.before_known_as_of)));setLaterKnown(kstInput(new Date(req.after_known_as_of)));setPage('timeline');
   const result=await api<Comparison>('/api/v1/analysis/compare',req);
   setComparison(result);setNotice('저장된 초안의 정확한 시점과 현재 관측을 비교했습니다. 승인 상태는 바뀌지 않았습니다.');
+ }
+ function returnToReview(){
+  if(!comparisonRequestId)return;
+  returningToReview.current=true;
+  setPage('approval');
+  void run('요청 상태 조회',()=>refreshProposals(comparisonRequestId));
  }
  async function analyzeCurrent(){
   const req=currentAnalysisInput(asset);
@@ -289,6 +304,7 @@ function App(){
  {page==='investigation'&&<><div className="section-heading"><h2>판정 결과</h2><span className="muted">규칙 기반 근거 검증 · 생성형 답변 아님</span></div>{analysis?<><section className={`panel decision-panel ${analysis.state==='SUPPORTED'?'supported':'attention'}`}><div className="decision-top"><span className="decision-icon">{analysis.state==='SUPPORTED'?'✓':'!'}</span><div><Badge state={analysis.state}/><h2>{actionLabel(analysis.recommended_action)}</h2><p>{reasonLabel(analysis.reason)}</p></div><div className="decision-action">{session.role==='engineer'&&<label>검토 요청 기한 (KST, 선택)<input type="datetime-local" value={reviewDue} onChange={e=>setReviewDue(e.target.value)} disabled={!!busy||!!draftAttempt}/></label>}<button className="primary" disabled={!!busy||!!draftAttempt||analysis.state!=='SUPPORTED'||session.role!=='engineer'||!analyzedInput||!freshProposal} onClick={()=>{if(analyzedInput)void run('초안 생성',()=>submitDraft(analyzedInput));}}>작업 초안 생성 →</button><small>{!freshProposal?'과거·미래 시점 분석은 읽기 전용입니다. 현재 시점으로 다시 분석하세요.':session.role==='engineer'?'승인 전에는 실행되지 않습니다':'초안 생성은 engineer 권한이 필요합니다'}</small></div></div><div className="decision-meta"><span>자산 <strong>{analyzedInput?.asset_id}</strong></span><span>유효 <strong>{formatTime(analysis.effective_at)}</strong></span><span>관측 <strong>{formatTime(analysis.known_as_of)}</strong></span><span>인용 <strong>{analysis.citations.length}건</strong></span></div></section><section className="panel"><div className="panel-heading"><h2>판정에 사용한 근거 <span className="count">{analysis.citations.length}</span></h2><button className="text-button" onClick={()=>setPage('timeline')}>타임라인에서 보기 ↗</button></div><Citations items={analysis.citations}/><Details data={analysis} title="판정 원본 상세"/></section></>:<section className="panel"><Empty title="조사할 자산과 시점을 선택하세요">분석하면 판정, 권장 조치, 인용 근거를 이곳에서 확인할 수 있습니다.</Empty><div className="example-row"><span className="muted">합성 예시</span><button className="text-button" disabled={!!busy} onClick={()=>{setAsset('A-103');setEffective(kstInput());setKnown(kstInput());invalidate();}}>A-103 · 현재 근거</button><button className="text-button" disabled={!!busy} onClick={()=>{setAsset('A-104');setEffective('2026-09-20T10:00');setKnown('2026-09-20T10:00');invalidate();}}>A-104 · 과거 시점 재현</button></div></section>}<div className="info-strip"><span>◇</span><div><strong>근거가 일치해도 실행에는 별도 승인이 필요합니다.</strong><p>시간·권한·충돌 여부는 서버 정책으로 판정합니다. 검색어는 문서 검색에만 사용됩니다.</p></div></div></>}
  {page==='timeline'&&<section className="panel comparison-panel" aria-labelledby="comparison-heading">
   <div className="panel-heading"><div><h2 id="comparison-heading">관측 시점 비교</h2><p className="comparison-intro">같은 업무 유효 시점에서, 나중에 알려진 근거가 판정을 바꿨는지 확인하세요.</p></div><span className="readonly-label">읽기 전용</span></div>
+  {comparisonRequestId&&<div className="comparison-review-context"><button className="secondary" disabled={!!busy} onClick={returnToReview}>← 요청 검토로 돌아가기</button><span>요청 <code>{comparisonRequestId.slice(0,14)}</code></span></div>}
   <form className="comparison-form" onSubmit={compareTimes}>
    <dl className="comparison-conditions"><div><dt>비교할 자산</dt><dd>{asset.trim()||'자산 ID를 입력하세요'}</dd></div><div><dt>고정할 업무 유효 시점</dt><dd>{effective?`${effective.replace('T',' ')} KST`:'유효 시점을 입력하세요'}</dd></div><div><dt>기준 관측 시점</dt><dd>{known?`${known.replace('T',' ')} KST`:'알려진 시점을 입력하세요'}</dd></div></dl>
    <div className="comparison-controls"><div><label htmlFor="later-known">비교 관측 시점 (KST)</label><input id="later-known" type="datetime-local" required value={laterKnown} disabled={!!busy} aria-describedby="comparison-time-hint" onChange={e=>{setLaterKnown(e.target.value);setComparison(null);setNotice('');}}/><small id="comparison-time-hint">조사 조건의 알려진 시점과 같거나 이후로 선택하세요.</small></div><div className="button-row"><button type="button" className="secondary" disabled={!!busy} onClick={()=>{setAsset('A-104');setEffective('2026-09-20T10:00');setKnown('2026-09-20T10:00');setLaterKnown('2026-10-06T10:00');invalidate();setNotice('');}}>A-104 사후 정정 예시</button><button className="primary" disabled={!!busy}>두 시점 비교 →</button></div></div>
@@ -323,18 +339,19 @@ function App(){
      </h2>
     </div>
     {visibleProposals.length?<div className="table-wrap"><table>
-     <thead><tr><th scope="col">요청 / 자산</th><th scope="col">상태</th></tr></thead>
+     <thead><tr><th scope="col">조치 / 자산</th><th scope="col">상태</th></tr></thead>
      <tbody>{visibleProposals.map(p=>{
       const isSelected=selected?.proposal_id===p.proposal_id;
+      const title=p.action?actionLabel(p.action):'작업 요청';
+      const shortId=p.proposal_id.slice(0,14);
       return <tr key={p.proposal_id} className={isSelected?'selected':''}>
-       <td>
-        <button className="proposal-link" disabled={!!busy} aria-current={isSelected?true:undefined} aria-controls="approval-detail"
+       <th scope="row">
+        <button className="proposal-link" disabled={!!busy} aria-label={[title,p.asset_id,`요청 ${shortId}`].filter(Boolean).join(' · ')} aria-current={isSelected?true:undefined} aria-controls="approval-detail"
          onClick={()=>{setError('');setNotice('');void openProposal(p.proposal_id).catch(e=>setError(e instanceof Error?e.message:'요청을 불러오지 못했습니다.'));}}
-         onKeyDown={moveReviewFocus}>{p.asset_id??'작업 요청'} <span aria-hidden="true">↗</span></button>
-        <small>{p.action?actionLabel(p.action):'조치 열람 불가'}</small>
-        <small className="mono">{p.proposal_id.slice(0,14)}</small>
+         onKeyDown={moveReviewFocus}>{title}</button>
+        <small className="request-row-meta">{p.asset_id&&<span>{p.asset_id}</span>}<code>{shortId}</code></small>
         {p.review_due_at?<small>검토 기한 {formatTime(p.review_due_at)} KST</small>:reviewQueue==='unscheduled'&&<small>검토 기한 미지정</small>}
-       </td>
+       </th>
        <td><Badge state={p.state}/><small>{formatTime(p.created_at)}</small></td>
       </tr>;
      })}</tbody>
@@ -344,7 +361,7 @@ function App(){
    </section>
    <section className="panel proposal-detail" id="approval-detail" aria-labelledby="approval-detail-title">
     <div className="panel-heading">
-     <h2 id="approval-detail-title">요청 검토</h2>
+     <h2 id="approval-detail-title" ref={reviewHeading} tabIndex={-1}>요청 검토</h2>
      {selectedId.current&&<button className="text-button" disabled={!!busy||detailLoading} onClick={()=>void run('상태 조회',()=>refreshProposals(selectedId.current??undefined))}>↻ 상태 조회</button>}
     </div>
     <div className="approval-feedback" aria-live="polite" role="status" ref={approvalFeedback} tabIndex={-1}>
@@ -378,7 +395,8 @@ function App(){
        </li>)}
       </ul>:<p className="muted">현재 표시할 수 있는 인용 근거가 없습니다.</p>}
      </section>
-     <div className="approval-actions">
+     <section className="approval-actions" aria-labelledby="approval-actions-title">
+      <h4 id="approval-actions-title">다음 조치</h4>
       {!guidance&&<p><strong>행동 정보 미확인</strong> · 상태를 다시 조회하세요.</p>}
       {guidance?.reason==='REVIEW_REQUIRED'&&<p><strong>검토 담당 확인 필요</strong> · {hasAction('TAKE_HANDOVER')?'인계 사유를 적고 검토 담당을 넘겨받으세요.':'현재 역할에서 인계할 수 없습니다.'}</p>}
       {selected.evidence_reviewable!==true&&<div className="review-warning">
@@ -416,7 +434,7 @@ function App(){
       {selected.state==='REJECTED'&&<p>거절된 요청입니다. 근거를 다시 조사해 새 초안을 생성하세요.</p>}
       {selected.state==='EXPIRED'&&<p>유효기간이 종료된 요청입니다. 현재 시점의 근거를 다시 조사해 새 초안을 생성하세요.</p>}
       {selected.state==='CANCELLED'&&<p>승인이 취소된 요청입니다.</p>}
-     </div>
+     </section>
      {hasAction('VIEW_RECEIPT')&&(selected.receipt!=null||selected.receipt_id)&&<div className="receipt">
       <h4>✓ mock 실행 영수증</h4>
       <p className="hash">{selected.receipt_id}</p>

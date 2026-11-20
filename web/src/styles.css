@@ -102,22 +102,34 @@
   padding: 8px 10px;
   overflow-wrap: anywhere;
 }
-.approval-workbench .proposal-list th:first-child {
+.approval-workbench .proposal-list thead th:first-child {
   padding-inline-start: 16px;
 }
-.approval-workbench .proposal-list td:first-child {
+.approval-workbench .proposal-list tbody th {
   border-inline-start: 3px solid transparent;
   padding-inline-start: 13px;
+  font-weight: normal;
 }
-.approval-workbench .proposal-list .selected td:first-child {
+.approval-workbench .proposal-list .selected th {
   border-inline-start-color: var(--teal);
+  background: #edf6f7;
 }
 .approval-workbench .proposal-link {
   min-height: 29px;
   padding: 2px 4px;
   margin-inline-start: -4px;
+  text-align: start;
 }
-.approval-workbench :is(button, select, input, summary):focus-visible {
+.approval-workbench .request-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  color: #405b6a;
+}
+.approval-workbench .request-row-meta code {
+  font-size: inherit;
+}
+.approval-workbench :is(button, select, input, summary, h2):focus-visible {
   outline: 2px solid #087e80;
   outline-offset: 2px;
 }
@@ -193,8 +205,14 @@
 }
 .approval-detail .approval-actions {
   margin-top: 10px;
-  padding: 10px 0 12px;
-  background: transparent;
+  padding: 8px 10px;
+  border-inline-start: 3px solid var(--teal);
+  background: #f5f8f9;
+}
+.approval-detail .approval-actions h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #264958;
 }
 .approval-detail .approval-actions p {
   font-size: 12px;
@@ -263,3 +281,11 @@
 }
 
 .comparison-next-step button:focus-visible { outline-color:#087e80; }
+.comparison-review-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 12px 16px 0;
+  color: #405b6a;
+}
