@@ -294,6 +294,8 @@ def test_unknown_handover_changes_reconciler_without_authorizing_an_execution(ca
             with closing(sqlite3.connect(path)) as db, db:
                 db.execute("DELETE FROM work_orders")
         login(successor, "reviewer-2")
+        assert successor.get(endpoint).json()["guidance"]["actions"] == ["TAKE_HANDOVER"]
+        assert original.get(endpoint).json()["guidance"]["actions"] == ["CHECK_RECEIPT"]
         result = handover(successor, endpoint, fingerprint, 1)
         assert result.status_code == 200, result.text
         detail = successor.get(endpoint).json()
@@ -301,6 +303,8 @@ def test_unknown_handover_changes_reconciler_without_authorizing_an_execution(ca
         assert detail["decided_by"] == "approver-1"
         assert detail["assigned_approver"] == "reviewer-2"
         assert detail["review_version"] == 2
+        assert detail["guidance"] == dict(version=1, reason="OUTCOME_UNKNOWN", actions=["CHECK_RECEIPT"], review_version=2)
+        assert original.get(endpoint).json()["guidance"]["actions"] == ["TAKE_HANDOVER"]
         assert original.post(endpoint + "/reconcile", json={}).status_code == 403
         assert original.post(endpoint + "/execute", json={}).status_code == 403
         assert successor.post(endpoint + "/execute", json={}).status_code == 403
@@ -523,3 +527,19 @@ def test_live_revocation_after_initial_authentication_blocks_workflow_mutation(c
             "SELECT * FROM audit",
             "SELECT * FROM work_orders",
         )] == before
+
+def test_two_reviewers_cannot_take_same_version(case):
+    path, app = case
+    with TestClient(app) as first, TestClient(app) as second:
+        login(first, 'engineer-1')
+        endpoint, draft = new_proposal(first)
+        login(first, 'approver-1')
+        login(second, 'reviewer-2')
+        barrier = Barrier(2, timeout=10)
+        def take(client):
+            barrier.wait()
+            return handover(client, endpoint, draft['fingerprint'], 0).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            assert sorted(pool.map(take, (first, second))) == [200, 409]
+        assert first.get(endpoint).json()['review_version'] == 1
+        assert rows(path, "SELECT COUNT(*) FROM audit WHERE kind='HANDOVER'") == [(1,)]

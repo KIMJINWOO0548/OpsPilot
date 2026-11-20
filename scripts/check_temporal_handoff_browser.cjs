@@ -11,6 +11,7 @@ const analysis={state:'SUPPORTED',recommended_action:'manual_inspection',reason:
  if(u.pathname==='/health')data={ok:true};
  else if(u.pathname==='/api/v1/auth/me')data={user_id:'engineer-1',role:'engineer',tenant:'demo',team:'team_a',csrf_token:'synthetic-only'};
  else if(u.pathname==='/api/v1/proposals')data={items:[proposal]};
+ else if(u.pathname==='/api/v1/draft-intent'&&route.request().method()==='GET')data={attempt:null};
  else if(u.pathname==='/api/v1/demo/scenarios')data={assets:['A-104']};
  else if(u.pathname.endsWith('/audit'))data={items:[]};
  else if(u.pathname==='/api/v1/proposals/synthetic-proposal')data=proposal;
@@ -23,6 +24,25 @@ const analysis={state:'SUPPORTED',recommended_action:'manual_inspection',reason:
  await page.getByRole('button',{name:'초안 이후 근거 변화 비교 →'}).click();await page.locator('.comparison-next-step').waitFor();assert.equal(posts[0].body.effective_at,saved.effective_at);assert.equal(posts[0].body.before_known_as_of,saved.known_as_of);
  const viewports=[];for(const width of [1440,390]){await page.setViewportSize({width,height:900});await page.locator('.comparison-next-step').scrollIntoViewIfNeeded();const metrics=await page.evaluate(()=>({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,buttonHeight:document.querySelector('.comparison-next-step button').getBoundingClientRect().height}));assert.equal(metrics.overflow,0);assert.ok(metrics.buttonHeight>=44);viewports.push(metrics);await page.screenshot({path:path.join(out,`temporal-handoff-${width}.png`),fullPage:true});}
  await page.locator('.comparison-next-step button').focus();await page.keyboard.press('Enter');await page.locator('.decision-panel').waitFor();assert.equal(posts.length,2);assert.equal(posts[1].path,'/api/v1/analysis');assert.equal(posts[1].body.effective_at,posts[1].body.known_as_of);assert.notEqual(posts[1].body.effective_at,saved.effective_at);assert.equal(await page.getByRole('button',{name:'작업 초안 생성 →'}).isEnabled(),true);assert.deepEqual(errors,[]);
- fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({status:'PASS',scope:'actual Chromium UI; intercepted synthetic API; backend separately tested',browser:browser.version(),viewports,requestPaths:posts.map(p=>p.path),exactSavedClocks:true,errors},null,2));
+ await page.setViewportSize({width:1440,height:900});
+ await page.getByRole('button',{name:/Approval Inbox/}).click();
+ const proposalLink=page.locator('.proposal-link');
+ const invalidAudits=[{contentType:'text/html',body:'<html>Response unavailable</html>'},{json:{items:null}}];
+ for(const invalidAudit of invalidAudits){
+   await page.route('**/audit',route=>route.fulfill({status:200,...invalidAudit}),{times:1});
+   await proposalLink.click();
+   await page.getByRole('alert').filter({hasText:'응답'}).waitFor({timeout:5000});
+   await proposalLink.click();
+   await page.locator('.proposal-id').filter({hasText:proposal.proposal_id}).waitFor();
+   await page.getByRole('alert').waitFor({state:'hidden'});
+ }
+ await page.route('**/api/v1/proposals/synthetic-proposal',route=>route.fulfill({json:{...proposal,proposal_id:'different-proposal'}}),{times:1});
+ await proposalLink.click();
+ await page.getByRole('alert').filter({hasText:'응답'}).waitFor({timeout:5000});
+ await proposalLink.click();
+ await page.locator('.proposal-id').filter({hasText:proposal.proposal_id}).waitFor();
+ await page.getByRole('alert').waitFor({state:'hidden'});
+ assert.deepEqual(errors,[]);
+ fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({status:'PASS',scope:'actual Chromium UI; intercepted synthetic API; backend separately tested',browser:browser.version(),viewports,requestPaths:posts.map(p=>p.path),exactSavedClocks:true,invalidAuditsRecovered:invalidAudits.length,wrongProposalRejected:true,errors},null,2));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

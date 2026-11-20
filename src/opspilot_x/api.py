@@ -3,16 +3,18 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import uuid
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import Field
+from pydantic import Field, field_validator
 import hmac
 from . import auth
 from .evidence_store import initialize_evidence, authorized_evidence, search_evidence
@@ -21,8 +23,57 @@ from pydantic import BaseModel, ConfigDict
 
 from .eie import evaluate
 from .comparison import compare_snapshots
-from .schema import (Actor, AnalyzeRequest, AnalysisComparison, CompareRequest,
+from .schema import (Actor, AnalyzeRequest, AnalysisComparison, CompareRequest, Citation,
                      DecisionRequest, ExecuteRequest)
+
+
+class ProposalGuidance(BaseModel):
+    version: Literal[1] = 1
+    reason: Literal["NONE", "RECEIPT_AVAILABLE", "OUTCOME_UNKNOWN", "EVIDENCE_UNAVAILABLE", "REVIEW_REQUIRED"]
+    actions: list[Literal["VIEW_RECEIPT", "CHECK_RECEIPT", "TAKE_HANDOVER", "REINVESTIGATE"]]
+    review_version: int
+
+
+class ProposalDetail(BaseModel):
+    proposal_id: str
+    state: str
+    review_version: int
+    evidence_reviewable: bool
+    citations: list[Citation]
+    review_context: dict[str, str] | None
+    guidance: ProposalGuidance | None = None
+    action: str | None = None
+    owner_user: str | None = None
+    asset_id: str | None = None
+    created_at: str | None = None
+    decided_by: str | None = None
+    assigned_approver: str | None = None
+    fingerprint: str | None = None
+    receipt_id: str | None = None
+    approval_valid: bool | None = None
+    handover_allowed: bool | None = None
+    review_due_at: str | None = None
+
+
+def proposal_guidance(state, *, receipt_present, receipt_matches_row, reconciler, handover,
+                      evidence_reviewable, approval_is_valid, assigned_elsewhere, review_version):
+    actions = []
+    reason = "NONE"
+    if state == "SUCCEEDED" and receipt_matches_row:
+        reason, actions = "RECEIPT_AVAILABLE", ["VIEW_RECEIPT"]
+    elif state in ("UNKNOWN_RECONCILE", "SUCCEEDED") or (state == "APPROVED" and receipt_present):
+        reason = "OUTCOME_UNKNOWN"
+        if reconciler and state in ("UNKNOWN_RECONCILE", "SUCCEEDED"):
+            actions.append("CHECK_RECEIPT")
+        if handover:
+            actions.append("TAKE_HANDOVER")
+    elif state in ("PENDING_APPROVAL", "APPROVED", "EXPIRED") and not evidence_reviewable:
+        reason, actions = "EVIDENCE_UNAVAILABLE", ["REINVESTIGATE"]
+    elif (state == "APPROVED" and not approval_is_valid) or (state == "PENDING_APPROVAL" and assigned_elsewhere):
+        reason = "REVIEW_REQUIRED"
+        if handover:
+            actions.append("TAKE_HANDOVER")
+    return ProposalGuidance(reason=reason, actions=actions, review_version=review_version)
 
 
 class AnalysisInput(AnalyzeRequest):
@@ -48,6 +99,23 @@ class LoginInput(BaseModel):
 
 class ProposalRequest(BaseModel):
     request: AnalysisInput
+    review_due_at: str | None = None
+
+    @field_validator("review_due_at")
+    @classmethod
+    def validate_review_due_at(cls, value):
+        if value is None:
+            return None
+        if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])", value) is None:
+            raise ValueError("Expected an ISO timestamp with an explicit offset")
+        try:
+            return queue_timestamp(datetime.fromisoformat(value))
+        except (ValueError, OverflowError):
+            raise ValueError("Invalid review due timestamp") from None
+
+
+def queue_timestamp(value):
+    return value.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 class HandoverInput(BaseModel):
@@ -64,10 +132,12 @@ class DraftIntentKey(BaseModel):
     key: str = Field(pattern=r"^intent:[a-f0-9-]{36}$")
 
 
-def _draft_input(request):
+def _draft_input(request, review_due_at=None):
     data = request.model_dump(mode="json", exclude={"actor"})
     for field in ("effective_at", "known_as_of"):
         data[field] = getattr(request, field).astimezone(timezone.utc).isoformat()
+    if review_due_at is not None:
+        data["review_due_at"] = review_due_at
     return data
 
 
@@ -185,7 +255,8 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             team TEXT NOT NULL,
             state TEXT NOT NULL,
             decided_by TEXT,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            review_due_at TEXT
         );
         CREATE TABLE IF NOT EXISTS work_orders(
             idempotency_key TEXT PRIMARY KEY,
@@ -222,6 +293,10 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             event_id TEXT PRIMARY KEY REFERENCES audit(event_id), data TEXT NOT NULL
         );
         """)
+        db.execute("BEGIN IMMEDIATE")
+        if "review_due_at" not in {row["name"] for row in db.execute("PRAGMA table_info(proposals)")}:
+            db.execute("ALTER TABLE proposals ADD COLUMN review_due_at TEXT")
+        db.commit()
 
     def clock():
         return datetime.now(timezone.utc).isoformat()
@@ -242,13 +317,12 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(404, "Unknown proposal")
         return row
 
+    def eligible_approver(row, actor):
+        return (actor.role == "approver" and actor.tenant == row["tenant"]
+                and actor.team == row["team"] and actor.user_id != row["owner_user"])
+
     def authorized_approver(row, actor: Actor):
-        if (
-            actor.role != "approver"
-            or actor.tenant != row["tenant"]
-            or actor.team != row["team"]
-            or actor.user_id == row["owner_user"]
-        ):
+        if not eligible_approver(row, actor):
             raise HTTPException(403, "Approver role and separation of duty required")
 
     def log(db, prop_id, kind, actor, details=None):
@@ -296,6 +370,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             log(db, row["id"], "EVIDENCE_CHANGED", actor.user_id)
             db.commit()
             raise HTTPException(409, "Evidence changed; proposal expired")
+        return snapshot
 
     def operation_key(proposal_id):
         return hashlib.sha256(f"work-order:{proposal_id}:v1".encode()).hexdigest()
@@ -326,14 +401,25 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     def draft_intent(db, scope):
         row = db.execute("SELECT request_key,request_json FROM draft_intents WHERE "
                          "tenant=? AND team=? AND owner_user=?", scope).fetchone()
-        return {"key": row["request_key"], "request": json.loads(row["request_json"])} if row else None
+        return (row["request_key"], json.loads(row["request_json"])) if row else None
+
+    def draft_response(intent):
+        if intent is None:
+            return {"attempt": None}
+        key, stored = intent
+        request = dict(stored)
+        due = request.pop("review_due_at", None)
+        attempt = {"key": key, "request": request}
+        if due is not None:
+            attempt["review_due_at"] = due
+        return {"attempt": attempt}
 
     @app.get("/api/v1/draft-intent")
     def read_draft_intent(http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
             db.execute("BEGIN")
             scope = draft_scope(live_actor(db, http, actor))
-            return {"attempt": draft_intent(db, scope)}
+            return draft_response(draft_intent(db, scope))
 
     @app.post("/api/v1/draft-intent")
     def stage_draft_intent(payload: ProposalRequest, http: Request, actor: Actor = Depends(principal)):
@@ -342,11 +428,11 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             scope = draft_scope(live_actor(db, http, actor))
             attempt = draft_intent(db, scope)
             if attempt is None:
-                attempt = {"key": DRAFT_INTENT_PREFIX + str(uuid.uuid4()), "request": _draft_input(payload.request)}
+                attempt = (DRAFT_INTENT_PREFIX + str(uuid.uuid4()), _draft_input(payload.request, payload.review_due_at))
                 db.execute("INSERT INTO draft_intents VALUES (?,?,?,?,?)",
-                           (*scope, attempt["key"], _serialize(attempt["request"])))
+                           (*scope, attempt[0], _serialize(attempt[1])))
             db.commit()
-            return {"attempt": attempt}
+            return draft_response(attempt)
 
     @app.post("/api/v1/draft-intent/clear")
     def clear_draft_intent(body: DraftIntentKey, http: Request, actor: Actor = Depends(principal)):
@@ -415,7 +501,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             owner_scope = draft_scope(actor)
             request = payload.request.model_copy(update={"actor": actor})
             if request_key is not None:
-                normalized = _draft_input(request)
+                normalized = _draft_input(request, payload.review_due_at)
                 input_hash = hashlib.sha256(_serialize(normalized).encode()).hexdigest()
                 scope = (*owner_scope, request_key)
                 prior = db.execute("SELECT input_hash,proposal_id FROM draft_requests WHERE "
@@ -430,9 +516,9 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                             "fingerprint": row["fingerprint"], "citations": snapshot.citations if matches else []}
                 if request_key.startswith(DRAFT_INTENT_PREFIX):
                     intent = draft_intent(db, owner_scope)
-                    if intent is None or intent["key"] != request_key:
+                    if intent is None or intent[0] != request_key:
                         raise HTTPException(409, "Draft intent is no longer active")
-                    if intent["request"] != normalized:
+                    if intent[1] != normalized:
                         raise HTTPException(409, "Draft request key was staged for different input")
             # Historical analysis cannot authorize a new present-time write.
             now = datetime.now(timezone.utc)
@@ -445,9 +531,10 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             prop_id = str(uuid.uuid4())
             fingerprint = _fingerprint(request, result)
             db.execute(
-                "INSERT INTO proposals VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO proposals (id,request_json,action,fingerprint,owner_user,tenant,team,state,decided_by,created_at,review_due_at)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (prop_id, request.model_dump_json(), result.recommended_action, fingerprint,
-                 actor.user_id, actor.tenant, actor.team, "PENDING_APPROVAL", None, clock()),
+                 actor.user_id, actor.tenant, actor.team, "PENDING_APPROVAL", None, clock(), payload.review_due_at),
             )
             if request_key is not None:
                 db.execute("INSERT INTO draft_requests VALUES (?,?,?,?,?,?)", (*scope, input_hash, prop_id))
@@ -456,37 +543,44 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         return {"proposal_id": prop_id, "state": "PENDING_APPROVAL", "action": result.recommended_action,
                 "fingerprint": fingerprint, "citations": result.citations}
 
-    @app.get("/api/v1/proposals/{proposal_id}")
-    def proposal(proposal_id: str, actor: Actor = Depends(principal)):
+    @app.get("/api/v1/proposals/{proposal_id}", response_model=ProposalDetail, response_model_exclude_unset=True)
+    def proposal(proposal_id: str, http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
             db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
             row = row_or_404(db, proposal_id)
             readable(row, actor)
             receipt = operation_receipt(db, proposal_id)
-            stored_request, review_request, snapshot, snapshot_matches = evidence_snapshot(db, row, actor)
+            stored, request, snapshot, matches = evidence_snapshot(db, row, actor)
             version, assignee, generation = review_state(db, proposal_id)
-            # A read reports readiness without expiring the proposal. Do not distinguish
-            # hidden, deleted, or changed sources, or disclose their metadata.
-            evidence_reviewable = snapshot_matches and not _latest_evidence_changed(
-                review_request, snapshot, db,
-            )
-            citations = snapshot.citations if snapshot_matches else []
-            return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
-                    "owner_user": row["owner_user"], "asset_id": stored_request.asset_id,
-                    "created_at": row["created_at"], "decided_by": row["decided_by"], "citations": citations,
-                    "review_version": version, "assigned_approver": assignee,
-                    "approval_valid": row["state"] == "APPROVED" and approval_valid(db, row, generation),
-                    "handover_allowed": actor.role == "approver" and actor.user_id != row["owner_user"]
-                    and actor.user_id != (assignee or row["decided_by"])
-                    and row["state"] in ("PENDING_APPROVAL", "APPROVED", "UNKNOWN_RECONCILE")
-                    and (row["state"] == "UNKNOWN_RECONCILE" or evidence_reviewable),
-                    "evidence_reviewable": evidence_reviewable,
-                    "review_context": stored_request.model_dump(mode="json", include={
-                        "claim_key", "effective_at", "known_as_of",
-                    }) if evidence_reviewable else None,
-                    "fingerprint": row["fingerprint"],
-                    "receipt_id": receipt["receipt_id"] if receipt and row["state"] == "SUCCEEDED"
-                    and receipt_matches(receipt, row) else None}
+            reviewable = matches and not _latest_evidence_changed(request, snapshot, db)
+            state = row["state"]
+            valid = state == "APPROVED" and approval_valid(db, row, generation)
+            eligible = eligible_approver(row, actor)
+            assigned = assignee or row["decided_by"]
+            handover = (eligible and assigned != actor.user_id and state in ("PENDING_APPROVAL", "APPROVED", "UNKNOWN_RECONCILE")
+                        and (state == "UNKNOWN_RECONCILE" or receipt is not None or reviewable))
+            receipt_ok = receipt is not None and receipt_matches(receipt, row)
+            guidance = proposal_guidance(state, receipt_present=receipt is not None, receipt_matches_row=receipt_ok,
+                reconciler=eligible and assigned == actor.user_id, handover=handover, evidence_reviewable=reviewable,
+                approval_is_valid=valid, assigned_elsewhere=assignee is not None and assignee != actor.user_id, review_version=version)
+            result = dict(proposal_id=proposal_id, state=state, review_version=version, guidance=guidance.model_dump(),
+                          evidence_reviewable=reviewable, review_context=None, citations=[])
+            if state == "SUCCEEDED" and receipt_ok:
+                result["receipt_id"] = receipt["receipt_id"]
+            if not matches:
+                if "TAKE_HANDOVER" in guidance.actions:
+                    result.update(fingerprint=row["fingerprint"], handover_allowed=True)
+                return result
+            result.update(action=row["action"], owner_user=row["owner_user"], asset_id=stored.asset_id,
+                created_at=row["created_at"], decided_by=row["decided_by"], assigned_approver=assignee,
+                approval_valid=valid, handover_allowed=handover, fingerprint=row["fingerprint"],
+                citations=snapshot.citations, receipt_id=receipt["receipt_id"] if state == "SUCCEEDED" and receipt_ok else None)
+            if row["review_due_at"] is not None:
+                result["review_due_at"] = row["review_due_at"]
+            if reviewable:
+                result["review_context"] = stored.model_dump(mode="json", include={"claim_key", "effective_at", "known_as_of"})
+            return result
 
     @app.post("/api/v1/proposals/{proposal_id}/decision")
     def decide(proposal_id: str, body: DecisionInput, http: Request, actor: Actor = Depends(principal)):
@@ -513,13 +607,15 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                     raise HTTPException(409, "Proposal already decided")
                 if assignee is not None and assignee != actor.user_id:
                     raise HTTPException(403, "Assigned approver required")
-                require_current_evidence(db, row, actor)
+                snapshot = require_current_evidence(db, row, actor)
                 new_state = "APPROVED" if body.decision == "approve" else "REJECTED"
             generation = eligible_generation(db, row, actor.user_id) if new_state == "APPROVED" else None
             db.execute("UPDATE proposals SET state=?, decided_by=? WHERE id=?",
                        (new_state, actor.user_id, proposal_id))
             save_review(db, proposal_id, version + 1, assignee, generation)
-            log(db, proposal_id, new_state, actor.user_id)
+            details = {"fingerprint": row["fingerprint"],
+                       "citations": [citation.model_dump() for citation in snapshot.citations]} if new_state == "APPROVED" else None
+            log(db, proposal_id, new_state, actor.user_id, details)
             db.commit()
             return {"proposal_id": proposal_id, "state": new_state}
 
@@ -629,18 +725,47 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(404, "Unknown proposal")
 
     @app.get("/api/v1/proposals")
-    def proposals(actor: Actor = Depends(principal)):
+    def proposals(http: Request, actor: Actor = Depends(principal),
+                  review_queue: Literal["overdue", "unscheduled"] | None = None):
+        if len(http.query_params.getlist("review_queue")) > 1:
+            raise HTTPException(422, "Choose one review queue")
+        as_of = queue_timestamp(datetime.now(timezone.utc)) if review_queue else None
         with connection() as db:
-            rows = db.execute("SELECT * FROM proposals WHERE tenant=? AND team=? AND (owner_user=? OR ?='approver') ORDER BY created_at DESC", (actor.tenant, actor.team, actor.user_id, actor.role)).fetchall()
-            return {"items": [{"proposal_id": r["id"], "state": r["state"], "action": r["action"],
-                               "created_at": r["created_at"], "owner_user": r["owner_user"],
-                               "decided_by": r["decided_by"], "asset_id": json.loads(r["request_json"])["asset_id"],
-                               "fingerprint": r["fingerprint"]} for r in rows]}
+            db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
+            query = "SELECT * FROM proposals WHERE tenant=? AND team=? AND (owner_user=? OR ?='approver')"
+            params = (actor.tenant, actor.team, actor.user_id, actor.role)
+            if review_queue == "overdue":
+                query += " AND state='PENDING_APPROVAL' AND review_due_at<? ORDER BY review_due_at,id"
+                params += (as_of,)
+            elif review_queue == "unscheduled":
+                query += " AND state='PENDING_APPROVAL' AND review_due_at IS NULL ORDER BY created_at DESC,id"
+            else:
+                query += " ORDER BY created_at DESC"
+            items = []
+            for row in db.execute(query, params):
+                item = {"proposal_id": row["id"], "state": row["state"]}
+                stored, _, _, matches = evidence_snapshot(db, row, actor)
+                if review_queue and not matches:
+                    continue
+                if matches:
+                    item.update(action=row["action"], created_at=row["created_at"], owner_user=row["owner_user"],
+                                decided_by=row["decided_by"], asset_id=stored.asset_id, fingerprint=row["fingerprint"])
+                    if review_queue:
+                        item["review_due_at"] = row["review_due_at"]
+                items.append(item)
+            return {"items": items, "as_of": as_of} if review_queue else {"items": items}
 
     @app.get("/api/v1/proposals/{proposal_id}/audit")
-    def audit(proposal_id: str, actor: Actor = Depends(principal)):
+    def audit(proposal_id: str, http: Request, actor: Actor = Depends(principal)):
         with connection() as db:
-            readable(row_or_404(db, proposal_id), actor)
+            db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
+            proposal_row = row_or_404(db, proposal_id)
+            readable(proposal_row, actor)
+            if not evidence_snapshot(db, proposal_row, actor)[3]:
+                return {"items": []}
+            visible = {source.evidence_id: source for source in authorized_evidence(path, actor, connection=db)}
             rows = db.execute("SELECT kind,actor,logged_at,data FROM audit "
                               "LEFT JOIN audit_details USING(event_id) WHERE proposal_id=? "
                               "ORDER BY logged_at,audit.rowid", (proposal_id,))
@@ -650,6 +775,15 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 data = item.pop("data")
                 if data is not None:
                     item["details"] = json.loads(data)
+                    citations = item["details"].pop("citations", [])
+                    if item["kind"] == "APPROVED":
+                        item["approved_documents"] = []
+                        for citation in citations:
+                            source = visible.get(citation["evidence_id"])
+                            if (source is not None and source.source_version == citation["source_version"]
+                                    and source.checksum == citation["checksum"]
+                                    and hashlib.sha256(source.text.encode()).hexdigest() == citation["checksum"]):
+                                item["approved_documents"].append({**citation, "text": source.text})
                 items.append(item)
             return {"items": items}
 

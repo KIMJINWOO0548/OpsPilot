@@ -6,6 +6,7 @@
 
 | ID | Gate | 작업 | 의존성 | 현재 상태 | Done 정의 |
 |---|---|---|---|---|---|
+| OP4 | G2 | 연체·기한 미지정 승인함 | A04, UI02 | ✅ 합성 로컬 검증 | 기존 초안 요청과 DB를 보존하고 현재 권한에서 보이는 승인 대기만 집계한다. 기한 경계·ACL 회수·Chrome 키보드·인수 회귀 확인. |
 | OP03 | G2/G5 | 영수증 누락 시 재실행 차단 | A02,A04 | ✅ 로컬 모의 방어 경계 | UNKNOWN/SUCCEEDED 영수증 누락·앱 재생성·혼합 동시 재시도에서 새 작업 0건, 원 영수증 복구·원 승인자·알려진 rollback 유지. 신규8/전체201. [한계](safety/EXECUTION_RECOVERY_2026-11-09.md); 수동 해제·실외부/outbox 미구현 |
 | A05 | G2/G6 | 관측 시점별 판정 변화 비교 | A03,E01 | ✅ 합성 로컬 기능 | 같은 유효 시점·두 known cutoff의 상태/조치/허용 인용 차이, 같은 읽기DB snapshot·ACL·작업/감사 불변. 새21·Linux190·Chromium12검사. [수용](design/TEMPORAL_COMPARISON_2026-11-02.md) |
 | UI02 | G2/G6 | 현재 근거 검토 상태와 승인함 동기화 | A04,UI01 | ✅ 합성 로컬 범위 | 근거 검토 불가 시 승인·최초 실행 잠금, 복구 유지, 실패 후 상세/목록 동기화. Linux169·frontend5·Chromium 검사. [근거](design/REVIEW_READINESS_2026-11-02.md) |
@@ -83,3 +84,9 @@ Phase2 Chromium156 verification completed: native keyboard flow,1440/390px docum
 - Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
 - Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
 - Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.
+
+2026-11-20 격리 QA: 승인 당시 문서 열기와 현재 ACL 필터를 구현했다. 검증 결과와 Windows 자식 프로세스 초기화 한계는 WORK_LOG.md에 기록했다. 프로덕션·연구 게이트는 미완료다.
+
+2026-11-20 후속 작업에서 승인함의 응답 오류 복구를 구현하고 Chrome으로 검증했다. WORK_LOG.md 참조.
+
+- [x] OP2 승인함에서 차단 사유와 서버가 허용한 행동 표시. API 회귀, 브라우저 키보드 대조·지연 응답, 타입 검사와 빌드를 격리 작업 사본에서 확인했다.

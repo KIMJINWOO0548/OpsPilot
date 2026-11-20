@@ -2,6 +2,8 @@
 
 > 이 표에서 `작동`은 로컬 제한 범위에만 적용됩니다. 95점 달성 증거가 아닙니다.
 
+**2026-11-20 연체 승인함:** 합성 로컬 콘솔에서 검토 요청 기한을 초안 복구와 연결했다. 연체·기한 미지정 목록은 현재 문서 ACL에서 볼 수 있는 대기 요청만 반환한다. 전체 Windows 검사 258개와 별도 Chrome 3개, 웹 단위 9개, 빌드·로컬 스모크가 통과했다. 기한 유무 두 경우의 실제 데스크톱 백엔드 자식 프로세스 재시작도 두 번째 실행에서 통과했다. 첫 실행의 소켓 오류 10014와 설치 앱·실제 교대 운영 검증은 별도로 남는다.
+
 **2026-11-16 후속:** 초안 요청키 보존, 검토 담당 인계·재승인, 승인 취소와 오래된 복원 격리를 구현했다. [원본 장부 OP1·OP2·OP7 대응과 검증](safety/DRAFT_HANDOVER_ACCEPTANCE_20261116.md). 새 설치기와 외부 실행·연구 수용은 별도다.
 
 **2026-11-09 독립 후속:** 영수증 없는 UNKNOWN/SUCCEEDED의 새 모의 작업 생성을
@@ -53,3 +55,11 @@ Phase2 Chromium156 verification completed: native keyboard flow,1440/390px docum
 - Fix: require matching proposal ID, derived operation key, approved action and nonblank receipt ID. Inconsistent evidence leaves UNKNOWN_RECONCILE without issuing another mock write or modifying the receipt. APPROVED reconciliation remains rejected.
 - Tests use owned temporary SQLite databases. User database and main are untouched. No external service integration, production crash recovery, or cryptographic receipt authenticity claim. An attacker controlling both proposal and receipt remains outside this check.
 - Validation: focused and full suite results recorded in docs/safety/RECEIPT_INTEGRITY_20261116.md.
+
+2026-11-20 격리 QA: 승인 당시 문서 열기와 현재 ACL 필터를 구현했다. 검증 결과와 Windows 자식 프로세스 초기화 한계는 WORK_LOG.md에 기록했다. 프로덕션·연구 게이트는 미완료다.
+
+2026-11-20 후속 QA에서 승인함의 잘못된 서버 응답이 오류 안내로 표시되고 정상 재조회로 복구되는 것을 Chrome에서 확인했다. WORK_LOG.md 참조.
+
+## 2026-11-20 · OP2 승인함 권한 안내
+
+승인함 상세에서 현재 계정·근거·영수증에 따른 허용 행동을 반환한다. 합성 API와 브라우저에서 제한된 응답, 대조, 권한 회수, 선택·로그아웃 후의 지연 응답을 검사했다. 설치된 데스크톱 검증과 G0/G1 연구 결과는 별도다.

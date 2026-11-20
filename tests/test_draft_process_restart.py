@@ -13,6 +13,8 @@ from threading import Thread
 from time import monotonic, sleep
 from urllib.parse import urlsplit
 
+import pytest
+
 from conftest import PASSWORD
 from opspilot_x.auth import create_user
 
@@ -64,7 +66,8 @@ def sign_in(conn, headers):
             "X-CSRF-Token": user["csrf_token"]}
 
 
-def test_discarded_response_and_real_desktop_process_restart(tmp_path):
+@pytest.mark.parametrize("review_due_at", [None, "2026-12-01T13:30:00.000000Z"])
+def test_discarded_response_and_real_desktop_process_restart(tmp_path, review_due_at):
     data, web = tmp_path / "data", tmp_path / "web" / "dist"
     data.mkdir()
     (web / "assets").mkdir(parents=True)
@@ -77,10 +80,15 @@ def test_discarded_response_and_real_desktop_process_restart(tmp_path):
     with desktop_backend(data, web) as (port, desktop_headers):
         with closing(HTTPConnection("127.0.0.1", port, timeout=8)) as conn:
             headers = sign_in(conn, desktop_headers)
-            staged, result = send(conn, "POST", "/api/v1/draft-intent", headers, {"request": draft_input})
+            body = {"request": draft_input}
+            if review_due_at is not None:
+                body["review_due_at"] = review_due_at
+            staged, result = send(conn, "POST", "/api/v1/draft-intent", headers, body)
             assert staged.status == 200
             attempt = result["attempt"]
-            conn.request("POST", "/api/v1/proposals", json.dumps({"request": attempt["request"]}),
+            assert attempt.get("review_due_at") == review_due_at
+            body["request"] = attempt["request"]
+            conn.request("POST", "/api/v1/proposals", json.dumps(body),
                          {**headers, "Content-Type": "application/json", "Idempotency-Key": attempt["key"]})
             # Observe the commit without calling getresponse() on this connection.
             deadline = monotonic() + 8
@@ -95,11 +103,12 @@ def test_discarded_response_and_real_desktop_process_restart(tmp_path):
             assert fetched.status == 200 and result == {"attempt": attempt}
             retry, draft = send(conn, "POST", "/api/v1/proposals",
                                 {**headers, "Idempotency-Key": attempt["key"]},
-                                {"request": attempt["request"]})
+                                body)
             assert retry.status == 201 and draft["proposal_id"] == stored[0]
             assert draft["action"] == "sensor_diagnostic_first"
             assert [c["evidence_id"] for c in draft["citations"]] == ["SOP-A103-v2"]
     with closing(sqlite3.connect(db_path)) as db:
         assert db.execute("SELECT id FROM proposals").fetchall() == [stored]
+        assert db.execute("SELECT review_due_at FROM proposals").fetchall() == [(review_due_at,)]
         assert db.execute("SELECT kind FROM audit").fetchall() == [("CREATED",)]
         assert db.execute("SELECT COUNT(*) FROM work_orders").fetchone() == (0,)

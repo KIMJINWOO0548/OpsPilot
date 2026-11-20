@@ -173,6 +173,8 @@ def test_visible_sources_preserve_independent_approval_and_receipt_recovery(revi
     assert unavailable.json()["evidence_reviewable"] is False
     assert unavailable.json()["citations"] == []
     assert_no_hidden_metadata(unavailable, source)
+    assert unavailable.json()["guidance"]["reason"] == "OUTCOME_UNKNOWN"
+    assert unavailable.json()["guidance"]["actions"] == ["CHECK_RECEIPT"]
     recovered = client.post(endpoint(proposal) + "/reconcile", json={})
     retry = client.post(endpoint(proposal) + "/execute", json={})
     assert recovered.status_code == retry.status_code == 200
@@ -195,3 +197,33 @@ def test_detail_rejects_stored_action_tamper_before_mutation(review_case, alread
     assert detail.json()["state"] == ("APPROVED" if already_approved else "PENDING_APPROVAL")
     assert detail.json()["evidence_reviewable"] is False
     assert_no_work_orders(path)
+
+def test_restricted_projections_and_guidance(review_case):
+    client, path, source, proposal = review_case
+    login(client, "approver-1")
+    restrict_reviewer(path, source)
+    for url in [endpoint(proposal), "/api/v1/proposals", endpoint(proposal) + "/audit"]:
+        response = client.get(url)
+        assert response.status_code == 200
+        for secret in [source.asset_id, proposal["action"], proposal["fingerprint"], "engineer-1"]:
+            assert secret not in response.text
+    detail = client.get(endpoint(proposal)).json()
+    assert detail["guidance"] == {"version": 1, "reason": "EVIDENCE_UNAVAILABLE",
+                                  "actions": ["REINVESTIGATE"], "review_version": detail["review_version"]}
+    assert client.get(endpoint(proposal) + "/audit").json() == {"items": []}
+
+@pytest.mark.parametrize('suffix', ['detail', 'list', 'audit'])
+def test_read_rechecks_account_after_principal(review_case, monkeypatch, suffix):
+    from opspilot_x import auth
+    client, path, source, proposal = review_case
+    login(client, 'approver-1')
+    original = auth.session
+    def revoke_after_read(database, token):
+        user = original(database, token)
+        auth.disable_user(path, 'approver-1')
+        return user
+    monkeypatch.setattr(auth, 'session', revoke_after_read)
+    url = {'detail':endpoint(proposal),'list':'/api/v1/proposals','audit':endpoint(proposal)+'/audit'}[suffix]
+    response = client.get(url)
+    assert response.status_code == 401
+    assert source.asset_id not in response.text

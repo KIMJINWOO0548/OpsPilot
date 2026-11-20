@@ -64,6 +64,9 @@ test('a persisted attempt matches only the exact analysis input, including both 
   assert.equal(sameDraftRequest(relaunched,{...request,...change}),false);
  }
  assert.equal(sameDraftRequest({...relaunched,effective_at:'2026-11-06T10:23:45.123000+00:00'},{...request,effective_at:'2026-11-06T10:23:45.123Z'}),true);
+ assert.equal(sameDraftRequest(relaunched,request,'2026-12-01T13:30:00.000000Z','2026-12-01T13:30:00.000Z'),true);
+ assert.equal(sameDraftRequest(relaunched,request,'2026-12-01T13:30:00.000000Z',undefined),false);
+ assert.equal(sameDraftRequest(relaunched,request,'2026-12-01T13:30:00.000001Z','2026-12-01T13:30:00.000Z'),false);
 });
 
 test('handover reserves decisions and receipt recovery for the assignee',()=>{
@@ -75,4 +78,14 @@ test('handover reserves decisions and receipt recovery for the assignee',()=>{
  assert.deepEqual(permissions('approver','UNKNOWN_RECONCILE','alice','bob','bob',true,assigned),{decide:false,execute:false,reconcile:false});
  assert.deepEqual(permissions('approver','UNKNOWN_RECONCILE','alice','carol','bob',false,assigned),{decide:false,execute:false,reconcile:true});
  assert.equal(permissions('approver','APPROVED','alice','bob','bob',true,{approvalValid:false}).execute,false);
+});
+
+test('guidance rejects stale and incompatible actions', async()=>{
+ const {readGuidance}=await import('./helpers.ts');
+ const valid={version:1,review_version:2,reason:'OUTCOME_UNKNOWN',actions:['CHECK_RECEIPT']};
+ assert.deepEqual(readGuidance(valid,2),valid);
+ for(const broken of [null,'<html>',{...valid,version:2},{...valid,review_version:3},{...valid,reason:'other'},{...valid,actions:['EXECUTE']},{...valid,reason:'NONE'}]){
+  assert.equal(readGuidance(broken,2),null);
+ }
+ assert.deepEqual(readGuidance({...valid,actions:[]},2),{...valid,actions:[]});
 });

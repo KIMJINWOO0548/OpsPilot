@@ -19,12 +19,13 @@ export function permissions(role:string,state:string,owner?:string,user?:string,
 }
 
 export type Input={asset_id:string;claim_key:string;effective_at:string;known_as_of:string};
-export type DraftAttempt={key:string;request:Input};
-export function sameDraftRequest(saved:Input,selected:Input){
+export type DraftAttempt={key:string;request:Input;review_due_at?:string};
+export function sameDraftRequest(saved:Input,selected:Input,savedDue?:string,selectedDue?:string){
  // The API writes UTC offsets and microseconds, and the browser emits Z and milliseconds.
  const utc=(value:string)=>value.replace(/\+00:00$/,'Z').replace(/(\.\d*?[1-9])0+Z$|\.0+Z$/,'$1Z');
  return saved.asset_id===selected.asset_id&&saved.claim_key===selected.claim_key&&
-  utc(saved.effective_at)===utc(selected.effective_at)&&utc(saved.known_as_of)===utc(selected.known_as_of);
+  utc(saved.effective_at)===utc(selected.effective_at)&&utc(saved.known_as_of)===utc(selected.known_as_of)&&
+  utc(savedDue??'')===utc(selectedDue??'');
 }
 
 export function currentAnalysisInput(asset:string,now=new Date()){
@@ -35,4 +36,22 @@ export function reviewComparisonInput(proposal:{asset_id?:string;evidence_review
  if(proposal.evidence_reviewable!==true||!proposal.asset_id||!proposal.review_context)return null;
  const saved=proposal.review_context;
  return {asset_id:proposal.asset_id,claim_key:saved.claim_key,effective_at:saved.effective_at,before_known_as_of:saved.known_as_of,after_known_as_of:now.toISOString()};
+}
+
+const guidanceActions = {
+ NONE: [], RECEIPT_AVAILABLE: ['VIEW_RECEIPT'], OUTCOME_UNKNOWN: ['CHECK_RECEIPT','TAKE_HANDOVER'],
+ EVIDENCE_UNAVAILABLE: ['REINVESTIGATE'], REVIEW_REQUIRED: ['TAKE_HANDOVER'],
+} as const;
+export type ProposalGuidance={version:1;reason:keyof typeof guidanceActions;actions:string[];review_version:number};
+
+export function readGuidance(value:unknown,reviewVersion:number):ProposalGuidance|null {
+ if(!value || typeof value!=='object')return null;
+ const data=value as Partial<ProposalGuidance>;
+ if(data.version!==1 || !Number.isSafeInteger(reviewVersion) || reviewVersion<0 ||
+    data.review_version!==reviewVersion || typeof data.reason!=='string' || !Object.hasOwn(guidanceActions,data.reason) ||
+    !Array.isArray(data.actions))return null;
+ const allowed:readonly string[]=guidanceActions[data.reason];
+ if(!data.actions.every(action=>allowed.includes(action)) || new Set(data.actions).size!==data.actions.length)return null;
+ if(data.reason==='RECEIPT_AVAILABLE' && data.actions.length!==1)return null;
+ return {version:1,reason:data.reason,actions:data.actions,review_version:reviewVersion};
 }

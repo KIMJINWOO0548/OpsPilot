@@ -13,7 +13,8 @@ def _app_db(path):
         db.execute("INSERT INTO users (username,user_id,tenant,team,role,salt,password_hash) "
                    "VALUES ('u','u','t','g','engineer','salt','hash')")
         db.execute("INSERT INTO sessions VALUES ('token-hash','u','csrf',9999999999)")
-        db.execute("INSERT INTO proposals VALUES ('p','{}','x','f','u','t','g','pending',NULL,'now')")
+        db.execute("INSERT INTO proposals (id,request_json,action,fingerprint,owner_user,tenant,team,state,decided_by,created_at,review_due_at)"
+                   " VALUES ('p','{}','x','f','u','t','g','pending',NULL,'now','2026-12-01T13:30:00.000000Z')")
 
 
 def test_backup_and_restore_preserve_app_data(tmp_path):
@@ -27,7 +28,7 @@ def test_backup_and_restore_preserve_app_data(tmp_path):
         assert db.execute("SELECT count(*) FROM sessions").fetchone()[0] == 1
     with sqlite3.connect(restored) as db:
         assert db.execute("SELECT username FROM users").fetchone() == ("u",)
-        assert db.execute("SELECT id FROM proposals").fetchone() == ("p",)
+        assert db.execute("SELECT id,review_due_at FROM proposals").fetchone() == ("p", "2026-12-01T13:30:00.000000Z")
         assert db.execute("SELECT count(*) FROM evidence_documents").fetchone()[0] > 0
         assert db.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
 
