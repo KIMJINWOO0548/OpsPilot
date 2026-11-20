@@ -15,6 +15,62 @@ from test_draft_handover_acceptance import current_request, decision, new_propos
 case = case_fixture
 
 
+def test_filtered_approval_keeps_evidence_and_result_in_the_workspace(case, monkeypatch):
+    if os.getenv('OPSPILOT_GUIDANCE_BROWSER') != '1':
+        pytest.skip('Opt-in Chrome and built local web console')
+    pw = pytest.importorskip('playwright.sync_api')
+    path, _ = case
+    monkeypatch.setenv('OPSPILOT_WEB_DIR', str(Path(__file__).resolve().parents[1] / 'web'))
+    with TestClient(create_app(path)) as api, pw.sync_playwright() as runtime:
+        login(api, 'engineer-1')
+        endpoint, draft = new_proposal(api)
+        login(api, 'approver-1')
+        browser = runtime.chromium.launch(channel='chrome')
+        try:
+            page = browser.new_page(viewport={'width': 1186, 'height': 783})
+
+            def dispatch(route):
+                request = route.request
+                parts = urlsplit(request.url)
+                url = parts.path + ('?' + parts.query if parts.query else '')
+                headers = {k: v for k, v in request.headers.items() if k in ('content-type', 'x-csrf-token')}
+                result = api.request(request.method, url, headers=headers, content=request.post_data_buffer)
+                route.fulfill(status=result.status_code, content_type=result.headers.get('content-type'), body=result.content)
+
+            page.route('http://opspilot.test/**', dispatch)
+            page.goto('http://opspilot.test/')
+            page.get_by_role('button', name='Approval Inbox', exact=False).click()
+            queue = page.get_by_role('combobox', name='승인함 필터')
+            queue.select_option('pending')
+            row = page.locator('.proposal-list tbody tr').get_by_role('button')
+            row.focus()
+            page.keyboard.press('Enter')
+            pw.expect(row).to_have_attribute('aria-current', 'true')
+            evidence = page.locator('.approval-evidence')
+            pw.expect(evidence).to_contain_text(draft['citations'][0]['source_id'])
+            pw.expect(evidence).to_contain_text(f"v{draft['citations'][0]['source_version']}")
+            approve = page.get_by_role('button', name='검토 후 승인')
+            pw.expect(approve).to_be_in_viewport()
+            approve.focus()
+            page.keyboard.press('Enter')
+            feedback = page.locator('.approval-feedback')
+            pw.expect(feedback).to_contain_text('승인 완료')
+            pw.expect(feedback).to_be_focused()
+            pw.expect(queue).to_have_value('all')
+            pw.expect(page.locator('.proposal-id')).to_have_text(endpoint.split('/')[-1])
+            assert api.get(endpoint).json()['state'] == 'APPROVED'
+            page.set_viewport_size({'width': 760, 'height': 590})
+            page.wait_for_function(
+                """() => {
+                    const layout = document.querySelector('.approval-layout');
+                    return getComputedStyle(layout).gridTemplateColumns.split(' ').length === 1
+                        && document.documentElement.scrollWidth <= innerWidth;
+                }"""
+            )
+        finally:
+            browser.close()
+
+
 def test_overdue_queue_keyboard_and_revocation(case, monkeypatch):
     from contextlib import closing
     import sqlite3

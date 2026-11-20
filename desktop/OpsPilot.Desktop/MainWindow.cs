@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 namespace OpsPilot.Desktop;
@@ -21,6 +22,7 @@ public sealed class MainWindow : Window
     public MainWindow(string dataDirectory)
     {
         data = dataDirectory; Title = "OpsPilot-X · 로컬 Preview"; Width = 1200; Height = 820; MinWidth = 960; MinHeight = 640;
+        Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Resources/OpsPilot.ico"));
         WindowStartupLocation = WindowStartupLocation.CenterScreen; FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14;
         Background = System.Windows.Media.Brushes.WhiteSmoke; Content = layout;
         message.Children.Add(new TextBlock { Text = "OpsPilot-X", FontSize = 32, FontWeight = FontWeights.SemiBold }); message.Children.Add(status);
