@@ -8,6 +8,7 @@ internal sealed class SetupWindow : Window
     public SetupWindow(Window owner)
     {
         Owner = owner; Title = "OpsPilot-X · 최초 계정 설정"; Width = 540; Height = 800; ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Icon = owner.Icon;
         FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14; Background = System.Windows.Media.Brushes.White;
         var panel = new StackPanel { Margin = new Thickness(28) };
         Content = new ScrollViewer { Content = panel };

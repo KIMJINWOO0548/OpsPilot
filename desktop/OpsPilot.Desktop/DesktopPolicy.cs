@@ -9,6 +9,8 @@ public sealed class DesktopBackendException(int? winError) : Exception("Desktop 
     public int? WinError { get; } = winError;
 }
 
+public sealed record DesktopStartupFailure(string Reason, string NextAction);
+
 public static class DesktopPolicy
 {
     public const string TokenHeader = "X-OpsPilot-Desktop-Token";
@@ -38,11 +40,11 @@ public static class DesktopPolicy
         return Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "http" && uri.Host == "127.0.0.1" && uri.Port == origin.Port && uri.UserInfo.Length == 0 && (value == authority || value.StartsWith(authority + "/", StringComparison.Ordinal) || value.StartsWith(authority + "?", StringComparison.Ordinal) || value.StartsWith(authority + "#", StringComparison.Ordinal));
     }
     // Child output and exception messages may contain credentials.
-    public static string SafeFailure(Exception e) => e switch
+    public static DesktopStartupFailure SafeFailure(Exception e) => e switch
     {
-        DesktopBackendException { WinError: 10014 } => "Windows 소켓 오류(10014)로 로컬 서비스를 시작하지 못했습니다. 앱을 종료한 뒤 네트워크 환경을 확인하세요.",
-        TimeoutException => "로컬 서비스 응답 시간이 초과되었습니다.",
-        FileNotFoundException => "앱 구성 파일이 없습니다. 배포 폴더를 확인하세요.",
-        _ => "앱을 시작하지 못했습니다. 구성 또는 로컬 서비스 상태를 확인하세요."
+        DesktopBackendException { WinError: 10014 } => new("Windows 소켓 오류(10014)로 로컬 서비스를 시작하지 못했습니다.", "앱을 종료한 뒤 네트워크 환경을 확인하고 다시 실행하세요."),
+        TimeoutException => new("로컬 서비스 응답 시간이 초과되었습니다.", "잠시 기다린 뒤 다시 시도하세요."),
+        FileNotFoundException => new("앱 구성 파일이 없습니다.", "설치 파일로 앱을 다시 설치하거나 전체 배포 파일을 풀고 다시 실행하세요."),
+        _ => new("앱을 시작하지 못했습니다.", "다시 시도하세요. 같은 문제가 계속되면 설치 파일을 확인하세요."),
     };
 }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OpsPilot approved handoff">
+  <path fill="#2E1C52" stroke="#B48DEA" stroke-width="2.5" d="m32 4 25 14v28L32 60 7 46V18z" stroke-linejoin="round"/>
+  <path fill="#D9B8FA" d="M18 18h12v12H18z" rx="2"/>
+  <path fill="#BAA7DB" d="M36 37h11v11H36z"/>
+  <path fill="none" stroke="#FFF2D2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M25 34h8l8-8m-8 0h8v8"/>
+  <path fill="none" stroke="#3A2359" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m20 24 3 3 5-6m10 22 3 2 4-5"/>
+</svg>

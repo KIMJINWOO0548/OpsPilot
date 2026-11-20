@@ -1,9 +1,28 @@
 using OpsPilot.Desktop;
 using System.Diagnostics;
 if (args.Contains("--child")) { Console.ReadLine(); return; }
+if (args.Contains("--check-stdin"))
+{
+    using var bytes = Console.OpenStandardInput();
+    if (bytes.ReadByte() != '{') throw new InvalidDataException("The first backend JSON byte must be '{' without a BOM.");
+    return;
+}
 static void Check(bool condition, string name) { if (!condition) throw new Exception(name); }
 static void Reject(Action action) { try { action(); } catch (ArgumentException) { return; } throw new Exception("Expected rejection"); }
 var token = new string('a', 64);
+var backendStart = BackendProcess.CreateStartInfo(Environment.ProcessPath!, AppContext.BaseDirectory);
+backendStart.ArgumentList.Add("--check-stdin");
+using (var protocolChild = Process.Start(backendStart)!)
+{
+    protocolChild.StandardInput.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { token }));
+    protocolChild.StandardInput.Close();
+    if (!protocolChild.WaitForExit(5000))
+    {
+        protocolChild.Kill();
+        throw new TimeoutException("The backend stdin check did not exit.");
+    }
+    Check(protocolChild.ExitCode == 0, protocolChild.StandardError.ReadToEnd());
+}
 var origin = DesktopPolicy.ReadyOrigin("{\"event\":\"ready\",\"origin\":\"http://127.0.0.1:12345\",\"token\":\"" + token + "\"}", token);
 Check(DesktopPolicy.IsOwnOrigin(origin, "http://127.0.0.1:12345/api"), "own request");
 foreach (var url in new[] { "https://127.0.0.1:12345", "http://localhost:12345", "http://127.0.0.1:12346", "file:///tmp/a", "javascript:alert(1)", "http://127.0.0.1:12345@evil.test" }) Check(!DesktopPolicy.IsOwnOrigin(origin, url), "external request");
@@ -18,8 +37,10 @@ Reject(() => DesktopPolicy.ReadyOrigin(System.Text.Json.JsonSerializer.Serialize
 Reject(() => DesktopPolicy.DataDirectory(new[] { "--data-dir", "relative" }));
 Reject(() => DesktopPolicy.DataDirectory(new[] { "--server-url", "http://evil" }));
 Check(DesktopPolicy.DataDirectory(new[] { "--data-dir", Path.GetTempPath() }) == Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath())), "absolute canonical path");
-Check(DesktopPolicy.SafeFailure(new Exception(token)).Contains(token) == false, "secret-free diagnostic");
-Check(DesktopPolicy.SafeFailure(new DesktopBackendException(10014)).Contains("10014"), "specific safe socket diagnostic");
+var hidden = DesktopPolicy.SafeFailure(new Exception(token));
+Check(!hidden.Reason.Contains(token) && !hidden.NextAction.Contains(token), "secret-free diagnostic and next step");
+var socketFailure = DesktopPolicy.SafeFailure(new DesktopBackendException(10014));
+Check(socketFailure.Reason.Contains("10014") && !string.IsNullOrWhiteSpace(socketFailure.NextAction), "specific safe socket diagnostic and next step");
 Check(DesktopPolicy.InstanceName(Path.GetTempPath()) == DesktopPolicy.InstanceName(Path.Combine(Path.GetTempPath(), ".")), "single instance canonical path");
 if (OperatingSystem.IsWindows())
 {

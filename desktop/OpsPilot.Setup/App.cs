@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
 namespace OpsPilot.Setup;
@@ -47,6 +48,7 @@ public sealed class SetupApp : Application
         public SetupWindow(string? uninstallVersion)
         {
             Title = uninstallVersion == null ? "OpsPilot-X 설치" : "OpsPilot-X 제거";
+            Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Resources/OpsPilot.ico"));
             Width = 650; Height = 430; ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterScreen;
             FontFamily = new FontFamily("Segoe UI"); FontSize = 14; Background = Brushes.White;
             var panel = new StackPanel { Margin = new Thickness(34) };
@@ -133,7 +135,9 @@ public sealed class SetupApp : Application
         try
         {
             shortcut = shell.CreateShortcut(ShortcutPath(version));
-            shortcut.TargetPath = Path.Combine(installed, "OpsPilot-X.exe");
+            var executable = Path.Combine(installed, "OpsPilot-X.exe");
+            shortcut.TargetPath = executable;
+            shortcut.IconLocation = executable + ",0";
             shortcut.WorkingDirectory = installed; shortcut.Description = "OpsPilot-X 근거 검증 워크스페이스"; shortcut.Save();
         }
         catch { if (File.Exists(ShortcutPath(version))) File.Delete(ShortcutPath(version)); throw; }

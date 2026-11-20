@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 namespace OpsPilot.Desktop;
 
@@ -12,6 +13,21 @@ internal sealed class BackendProcess : IAsyncDisposable
     private bool ready;
     public string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
     public event Action? Exited;
+
+    internal static ProcessStartInfo CreateStartInfo(string executable, string workingDirectory) => new(executable)
+    {
+        UseShellExecute = false,
+        CreateNoWindow = true,
+        RedirectStandardInput = true,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        // The first byte of the JSON line sent to Python must be '{'.
+        StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+        StandardOutputEncoding = Encoding.UTF8,
+        StandardErrorEncoding = Encoding.UTF8,
+        WorkingDirectory = workingDirectory,
+    };
+
     public async Task<Uri> StartAsync(string data, Func<Task<object?>> setup, CancellationToken cancellation)
     {
         var bundle = AppContext.BaseDirectory;
@@ -19,7 +35,7 @@ internal sealed class BackendProcess : IAsyncDisposable
         var web = Path.Combine(bundle, "backend", "web", "dist");
         if (!File.Exists(python) || !File.Exists(Path.Combine(web, "index.html"))) throw new FileNotFoundException();
         job = new ChildJob();
-        var start = new ProcessStartInfo(python) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardInputEncoding = System.Text.Encoding.UTF8, StandardOutputEncoding = System.Text.Encoding.UTF8, StandardErrorEncoding = System.Text.Encoding.UTF8, WorkingDirectory = bundle };
+        var start = CreateStartInfo(python, bundle);
         foreach (var key in start.Environment.Keys.Where(k => k.StartsWith("PYTHON", StringComparison.OrdinalIgnoreCase) || k.StartsWith("OPSPILOT", StringComparison.OrdinalIgnoreCase)).ToArray()) start.Environment.Remove(key);
         foreach (var arg in new[] { "-I", "-B", "-u", "-m", "opspilot_x.desktop_runtime", "--data-dir", data, "--web-dir", web }) start.ArgumentList.Add(arg);
         child = new Process { StartInfo = start, EnableRaisingEvents = true };

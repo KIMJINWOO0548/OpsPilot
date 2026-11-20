@@ -112,10 +112,15 @@ def main() -> None:
         parser.error('Output already exists; choose a new release directory')
     output.parent.mkdir(parents=True, exist_ok=True)
     # Preserve failed build inputs for diagnosis; never delete an existing release.
-    staging = Path(tempfile.mkdtemp(prefix='opspilot-desktop-', dir=ROOT / '.local'))
+    scratch = ROOT / '.local'
+    scratch.mkdir(exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix='opspilot-desktop-', dir=scratch))
     app = staging / 'application'
     app.mkdir()
     run(['pnpm.cmd', 'build'], cwd=ROOT / 'web')
+    checks = staging / 'desktop-checks'
+    publish('desktop/OpsPilot.Desktop.Checks/OpsPilot.Desktop.Checks.csproj', checks)
+    run([str(checks / 'OpsPilot.Desktop.Checks.exe')])
     publish('desktop/OpsPilot.Desktop/OpsPilot.Desktop.csproj', app)
     licenses = app / 'licenses'
     licenses.mkdir(exist_ok=True)
