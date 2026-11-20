@@ -8,7 +8,11 @@ from fastapi.testclient import TestClient
 
 from opspilot_x.api import create_app
 from conftest import login
-from test_draft_handover_acceptance import case, current_request, decision, new_proposal
+from test_draft_handover_acceptance import case as case_fixture
+from test_draft_handover_acceptance import current_request, decision, new_proposal
+
+# Register the shared pytest fixture in this module without shadowing its import.
+case = case_fixture
 
 
 def test_overdue_queue_keyboard_and_revocation(case, monkeypatch):
