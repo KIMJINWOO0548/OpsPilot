@@ -92,3 +92,4 @@ Phase2 Chromium156 verification completed: native keyboard flow,1440/390px docum
 2026-11-20 후속 작업에서 승인함의 응답 오류 복구를 구현하고 Chrome으로 검증했다. WORK_LOG.md 참조.
 
 - [x] OP2 승인함에서 차단 사유와 서버가 허용한 행동 표시. API 회귀, 브라우저 키보드 대조·지연 응답, 타입 검사와 빌드를 격리 작업 사본에서 확인했다.
+- [x] 격리 Windows 설치본에서 시작 JSON BOM 회귀, 초안 응답 유실 복구, 승인·인계·영수증 조회, 재시작 후 상태 확인. Windows 소켓 오류의 환경 원인과 사용자 기본 경로 설치는 별도 검증 항목으로 남는다.
