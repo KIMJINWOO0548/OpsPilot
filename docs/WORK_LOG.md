@@ -302,3 +302,5 @@ Earlier Windows10014 initialization errors remain documented separately.
 - 웹 TypeScript/production build, helper 9, Chrome+실제 ASGI 승인함 4, 별도 inline 성공/조회 실패/ACL·버전 갱신/390–1600px 넘침 검사가 통과했다. 전체 Python 기본 실행은 Windows 소켓 관련 254통과/4실패/4오류/4skip. 기존 프로세스 한정 socketpair 보정 재검사는 261통과/1오류/4skip이고 1오류는 소스 패키지 fixture가 생성된 Setup bin을 복사하다 WinError112 디스크 부족으로 실패했다. 정책 실패로 바꾸거나 숨기지 않았다. 두 스모크 통과.
 - 정확한 최종 ZIP과 setup 내 ZIP 해시는 일치한다. SetupEngine 격리 설치는 디스크 부족으로 미완료. 실제 WPF 최초 전/후·동일 요청 복귀·오류 숨김은 확인, 후속 기동/CDP 실패는 보존했다. 최종 native 결과와 경로는 workspace `outputs/desktop-redesign/opspilot/actual/README.ko.md`에 기록한다.
 - 로컬 G2/G6 개선이며 G0/G1 연구 수용, 공개 배포, 실업무 쓰기, 기업 인증·부하·독립 보안 검증을 완료하지 않는다.
+
+최종 추가: 정확한 최종 portable을 사용한 실제 WPF 합성 승인/인계/영수증/재시작 경로 통과. viewport1186×783 및946×674, DPR1.25, CSS 콘텐츠150% 검사. OS 주입 키 실패는 별도 기록하고 WebView 키보드 검증으로 구분. 디스크 실패한 소스 fixture는 commit 소스 전용 archive에서 동일1개 재검사 통과. 최종 설치기 embeddedZIP 일치, 설치 완료는 디스크 오류로 미수용. workspace actual/README.ko.md와 native-final-workflow.log 참조.
