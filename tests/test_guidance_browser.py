@@ -52,6 +52,10 @@ def test_filtered_approval_keeps_evidence_and_result_in_the_workspace(case, monk
             evidence = page.locator('.approval-evidence')
             pw.expect(evidence).to_contain_text(draft['citations'][0]['source_id'])
             pw.expect(evidence).to_contain_text(f"v{draft['citations'][0]['source_version']}")
+            page.get_by_role('button', name='이 작업대에서 현재 관측 비교').click()
+            pw.expect(page.get_by_role('region', name='현재 관측 비교 결과')).to_contain_text(draft['citations'][0]['source_id'])
+            pw.expect(page.locator('.proposal-id')).to_have_text(request_id)
+            assert api.get(endpoint).json()['state'] == 'PENDING_APPROVAL'
             page.get_by_role('button', name='초안 이후 근거 변화 비교').click()
             pw.expect(page.get_by_role('heading', name='관측 시점 비교')).to_be_visible()
             pw.expect(page).to_have_title('OpsPilot-X · 초안 근거 비교')

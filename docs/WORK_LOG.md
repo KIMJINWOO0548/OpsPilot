@@ -295,3 +295,10 @@ Earlier Windows10014 initialization errors remain documented separately.
 
 - 기본 Windows 제목 표시줄의 제목을 로그인, 근거 조사, 타임라인, 승인함, 초안 근거 비교에 맞춘다. 소유한 작업대 루트의 고정 화면 제목만 OS에 표시한다.
 - Windows 11에서는 창 활성 상태에 따라 제목 표시줄 색을 구분하고 고대비 모드에서는 시스템 색을 사용한다. 실제 WPF 125%에서 합성 승인과 인계·복구·재시작을 다시 확인했고, Chrome 승인함 회귀 4개와 데스크톱 정책 검사를 실행했다.
+
+## 2026-11-21 — 승인함 병렬 검토 작업대 (격리 후보)
+- `656d46c`에서 별도 로컬 clone으로 시작. 큐, 고정 근거·유효/관측 시점, 현재 관측 비교, 권한·행동·영수증 레일을 실제 React/API에 연결했다. WPF 캡션/아이콘, Python 정책·ACL·SQLite는 변경하지 않았다.
+- 현재 관측 비교는 기존 읽기 전용 API를 호출한다. 선택·세션·상세 세대가 바뀌면 결과를 폐기하며 오류 시 상세를 다시 조회한다. 비교는 승인 권한을 부여하지 않는다. 원문 전체 비교는 기존 타임라인/승인 당시 문서 경로를 유지한다.
+- 웹 TypeScript/production build, helper 9, Chrome+실제 ASGI 승인함 4, 별도 inline 성공/조회 실패/ACL·버전 갱신/390–1600px 넘침 검사가 통과했다. 전체 Python 기본 실행은 Windows 소켓 관련 254통과/4실패/4오류/4skip. 기존 프로세스 한정 socketpair 보정 재검사는 261통과/1오류/4skip이고 1오류는 소스 패키지 fixture가 생성된 Setup bin을 복사하다 WinError112 디스크 부족으로 실패했다. 정책 실패로 바꾸거나 숨기지 않았다. 두 스모크 통과.
+- 정확한 최종 ZIP과 setup 내 ZIP 해시는 일치한다. SetupEngine 격리 설치는 디스크 부족으로 미완료. 실제 WPF 최초 전/후·동일 요청 복귀·오류 숨김은 확인, 후속 기동/CDP 실패는 보존했다. 최종 native 결과와 경로는 workspace `outputs/desktop-redesign/opspilot/actual/README.ko.md`에 기록한다.
+- 로컬 G2/G6 개선이며 G0/G1 연구 수용, 공개 배포, 실업무 쓰기, 기업 인증·부하·독립 보안 검증을 완료하지 않는다.

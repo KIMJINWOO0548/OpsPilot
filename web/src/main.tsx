@@ -39,6 +39,7 @@ function App(){
  const [asset,setAsset]=useState('A-103'),[query,setQuery]=useState(''),[effective,setEffective]=useState(()=>kstInput()),[known,setKnown]=useState(()=>kstInput()),[assets,setAssets]=useState<string[]>([]);
  const [analysis,setAnalysis]=useState<Analysis|null>(null),[analyzedInput,setAnalyzedInput]=useState<Input|null>(null),[evidence,setEvidence]=useState<Evidence[]>([]),[searched,setSearched]=useState(false);
  const [laterKnown,setLaterKnown]=useState(()=>kstInput()),[comparison,setComparison]=useState<Comparison|null>(null);
+ const [inlineComparison,setInlineComparison]=useState<{generation:number;data:Comparison;observedAt:string}|null>(null);
  const [comparisonRequestId,setComparisonRequestId]=useState<string|null>(null);
  const [proposals,setProposals]=useState<ProposalRow[]>([]),[selected,setSelected]=useState<Proposal|null>(null),[audit,setAudit]=useState<Audit[]>([]),[health,setHealth]=useState<boolean|null>(null);
  const [draftAttempt,setDraftAttempt]=useState<DraftAttempt|null>(null),[handoverReason,setHandoverReason]=useState('');
@@ -51,7 +52,7 @@ function App(){
  const approvalFeedback=useRef<HTMLDivElement>(null);
  const sessionGeneration=useRef(0), detailGeneration=useRef(0), listGeneration=useRef(0);
  const restrictedAt=useRef(new Map<string,number>()), disclosureSequence=useRef(0), selectedId=useRef<string|null>(null);
- function clearData(){restrictedAt.current.clear();selectedId.current=null;queueFilter.current='all';++sessionGeneration.current;++detailGeneration.current;++listGeneration.current;setAssets([]);setAnalysis(null);setAnalyzedInput(null);setSelected(null);setDetailLoading(false);setAudit([]);setProposals([]);setEvidence([]);setSearched(false);setComparison(null);setComparisonRequestId(null);setDraftAttempt(null);setHandoverReason('');setReviewDue('');setReviewQueue('all');setQueueAsOf(null);}
+ function clearData(){restrictedAt.current.clear();selectedId.current=null;queueFilter.current='all';++sessionGeneration.current;++detailGeneration.current;++listGeneration.current;setAssets([]);setAnalysis(null);setAnalyzedInput(null);setSelected(null);setInlineComparison(null);setDetailLoading(false);setAudit([]);setProposals([]);setEvidence([]);setSearched(false);setComparison(null);setComparisonRequestId(null);setDraftAttempt(null);setHandoverReason('');setReviewDue('');setReviewQueue('all');setQueueAsOf(null);}
  async function api<T>(path:string,body?:unknown,headers:Record<string,string>={}):Promise<T>{
   const generation=sessionGeneration.current;
   const r=await fetch(path,{credentials:'same-origin',method:body===undefined?'GET':'POST',headers:{...(body===undefined?{}:{'Content-Type':'application/json'}),...(session?.csrf_token?{'X-CSRF-Token':session.csrf_token}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)}).catch(()=>{
@@ -110,6 +111,22 @@ function App(){
   const result=await api<Comparison>('/api/v1/analysis/compare',req);
   setComparison(result);setNotice('저장된 초안의 정확한 시점과 현재 관측을 비교했습니다. 승인 상태는 바뀌지 않았습니다.');
  }
+ async function compareInPlace(){
+  if(!selected)return;
+  const req=reviewComparisonInput(selected);
+  if(!req)return;
+  const generation=detailGeneration.current,id=selected.proposal_id;
+  setInlineComparison(null);
+  try{
+   const data=await api<Comparison>('/api/v1/analysis/compare',req);
+   if(generation!==detailGeneration.current||selectedId.current!==id)return;
+   if(!Array.isArray(data?.before?.citations)||!Array.isArray(data?.after?.citations))throw new Error('비교 응답을 확인할 수 없습니다. 다시 조회하세요.');
+   setInlineComparison({generation,data,observedAt:req.after_known_as_of});
+  }catch(error){
+   if(generation===detailGeneration.current){await refreshProposals(id).catch(()=>{});}
+   throw error;
+  }
+ }
  function returnToReview(){
   if(!comparisonRequestId)return;
   returningToReview.current=true;
@@ -131,7 +148,7 @@ function App(){
   catch(error){
    if(generation!==listGeneration.current)return;
    if(error instanceof ApiError && [403,404].includes(error.status)){
-    selectedId.current=null;++detailGeneration.current;setSelected(null);setDetailLoading(false);setAudit([]);setProposals([]);proposalHeading.current?.focus();
+    selectedId.current=null;++detailGeneration.current;setSelected(null);setInlineComparison(null);setDetailLoading(false);setAudit([]);setProposals([]);proposalHeading.current?.focus();
    }
    throw error;
   }
@@ -162,7 +179,7 @@ function App(){
  async function openProposal(id:string){
   const generation=++detailGeneration.current, started=disclosureSequence.current, dueFilter=hasReviewDueFilter(queueFilter.current);
   selectedId.current=id;
-  setSelected(null);setDetailLoading(true);setAudit([]);setHandoverReason('');
+  setSelected(null);setInlineComparison(null);setDetailLoading(true);setAudit([]);setHandoverReason('');
   const path=`/api/v1/proposals/${encodeURIComponent(id)}`;
   try {
    const detail=api<Proposal>(path).then(p=>{
@@ -198,7 +215,7 @@ function App(){
  }
  async function refreshProposals(id?:string){
   if(hasReviewDueFilter(queueFilter.current)){
-   selectedId.current=null;++detailGeneration.current;setSelected(null);setDetailLoading(false);setAudit([]);setHandoverReason('');
+   selectedId.current=null;++detailGeneration.current;setSelected(null);setInlineComparison(null);setDetailLoading(false);setAudit([]);setHandoverReason('');
    const visible=await loadProposals();
    if(id&&visible?.some(row=>row.proposal_id===id))await openProposal(id);
    else if(id)proposalHeading.current?.focus();
@@ -212,7 +229,7 @@ function App(){
   if(queueFilter.current===queue||busy)return;
   queueFilter.current=queue;setReviewQueue(queue);setQueueAsOf(null);
   selectedId.current=null;++detailGeneration.current;++listGeneration.current;
-  setSelected(null);setDetailLoading(false);setAudit([]);setHandoverReason('');setProposals([]);
+  setSelected(null);setInlineComparison(null);setDetailLoading(false);setAudit([]);setHandoverReason('');setProposals([]);
   void run('승인함 조회',async()=>{await loadProposals();});
  }
  async function mutateProposal(suffix:string,body:unknown){
@@ -302,7 +319,7 @@ function App(){
  const pending=(proposal:ProposalRow)=>proposal.state==='PENDING_APPROVAL';
  const visibleProposals=reviewQueue==='pending'?proposals.filter(pending):reviewQueue==='all'?[...proposals].sort((a,b)=>Number(pending(b))-Number(pending(a))):proposals;
  const canCancel=guidance?.reason==='NONE'&&session.role==='approver'&&selected?.decided_by===session.user_id&&!selected.receipt_id;
- return <div className="app-shell"><a className="skip" href="#workspace">본문으로 이동</a><aside className="sidebar"><button className="brand-button" onClick={()=>setPage('investigation')} aria-label="OpsPilot-X 근거 조사"><Brand/></button><div className="workspace-switch"><span className="workspace-icon">OP</span><span>운영 검증 워크스페이스<small>{session.tenant} / {session.team}</small></span><span>⌄</span></div><p className="nav-label">WORKSPACE</p><nav aria-label="주 메뉴">{pages.map(p=><button key={p.id} className={`nav-item ${page===p.id?'active':''}`} onClick={()=>setPage(p.id)} aria-current={page===p.id?'page':undefined}><span className="nav-icon">{p.icon}</span><span>{p.title}<small>{p.en}</small></span>{p.id==='approval'&&<span className="nav-count">{proposals.filter(p=>p.state==='PENDING_APPROVAL').length}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="safety-note"><span>◇</span><strong>사람의 승인 후 실행</strong><p>모든 작업은 mock입니다.<br/>실제 업무 시스템에 연결되지 않습니다.</p></div><div className="profile"><span className="avatar">{session.user_id.slice(0,2).toUpperCase()}</span><div><strong>{session.user_id}</strong><small>{session.role} · {session.team}</small></div><button className="logout" aria-label="로그아웃" title="로그아웃" disabled={!!busy} onClick={()=>void run('로그아웃',async()=>{await api('/api/v1/auth/logout',{});setSession(null);clearData();})}>↪</button></div></div></aside><div className="main-shell"><header className="topbar"><div><span className="muted">워크스페이스</span><span className="breadcrumb">/</span><strong>{current.title}</strong></div><div className="topbar-right"><span className={`connection ${health?'connected':''}`}><i/>{health?'API 연결됨':health===false?'연결 확인 필요':'연결 확인 중'}</span><span className="env-label">LOCAL</span></div></header><main id="workspace" tabIndex={-1}><div className={page==='approval'?'page-heading approval-page-heading':'page-heading'}><div>{page!=='approval'&&<p className="eyebrow">{current.en.toUpperCase()}</p>}<h1>{current.title}</h1>{page!=='approval'&&<p>{page==='investigation'?'현재의 판단을, 그 시점의 근거로 확인하세요.':'업무상 유효한 시간과 시스템이 알게 된 시간을 나란히 확인하세요.'}</p>}</div><span className="date-label">KST · UTC+09:00</span></div>{page!=='approval'&&<><div aria-live="polite" role="status">{busy&&<div className="message loading">◌ {busy} 중…</div>}{notice&&<div className="message success">✓ {notice}</div>}</div>{error&&<div className="message error" role="alert">{error}<button aria-label="오류 닫기" onClick={()=>setError('')}>×</button></div>}</>}
+ return <div className={`app-shell ${page==='approval'?'review-shell':''}`}><a className="skip" href="#workspace">본문으로 이동</a><aside className="sidebar"><button className="brand-button" onClick={()=>setPage('investigation')} aria-label="OpsPilot-X 근거 조사"><Brand/></button><div className="workspace-switch"><span className="workspace-icon">OP</span><span>운영 검증 워크스페이스<small>{session.tenant} / {session.team}</small></span><span>⌄</span></div><p className="nav-label">WORKSPACE</p><nav aria-label="주 메뉴">{pages.map(p=><button key={p.id} className={`nav-item ${page===p.id?'active':''}`} onClick={()=>setPage(p.id)} aria-current={page===p.id?'page':undefined}><span className="nav-icon">{p.icon}</span><span>{p.title}<small>{p.en}</small></span>{p.id==='approval'&&<span className="nav-count">{proposals.filter(p=>p.state==='PENDING_APPROVAL').length}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="safety-note"><span>◇</span><strong>사람의 승인 후 실행</strong><p>모든 작업은 mock입니다.<br/>실제 업무 시스템에 연결되지 않습니다.</p></div><div className="profile"><span className="avatar">{session.user_id.slice(0,2).toUpperCase()}</span><div><strong>{session.user_id}</strong><small>{session.role} · {session.team}</small></div><button className="logout" aria-label="로그아웃" title="로그아웃" disabled={!!busy} onClick={()=>void run('로그아웃',async()=>{await api('/api/v1/auth/logout',{});setSession(null);clearData();})}>↪</button></div></div></aside><div className="main-shell"><header className="topbar"><div><span className="muted">워크스페이스</span><span className="breadcrumb">/</span><strong>{current.title}</strong></div><div className="topbar-right"><span className={`connection ${health?'connected':''}`}><i/>{health?'API 연결됨':health===false?'연결 확인 필요':'연결 확인 중'}</span><span className="env-label">LOCAL</span></div></header><main id="workspace" tabIndex={-1}><div className={page==='approval'?'page-heading approval-page-heading':'page-heading'}><div>{page!=='approval'&&<p className="eyebrow">{current.en.toUpperCase()}</p>}<h1>{current.title}</h1>{page!=='approval'&&<p>{page==='investigation'?'현재의 판단을, 그 시점의 근거로 확인하세요.':'업무상 유효한 시간과 시스템이 알게 된 시간을 나란히 확인하세요.'}</p>}</div><span className="date-label">KST · UTC+09:00</span></div>{page!=='approval'&&<><div aria-live="polite" role="status">{busy&&<div className="message loading">◌ {busy} 중…</div>}{notice&&<div className="message success">✓ {notice}</div>}</div>{error&&<div className="message error" role="alert">{error}<button aria-label="오류 닫기" onClick={()=>setError('')}>×</button></div>}</>}
  {session.role==='engineer'&&draftAttempt&&<div className="info-strip"><span>◇</span><div><strong>처리 결과를 확인할 초안 요청</strong><p>{draftAttempt.request.asset_id} · 유효 {formatTime(draftAttempt.request.effective_at)} · 관측 {formatTime(draftAttempt.request.known_as_of)} KST{draftAttempt.review_due_at?` · 검토 기한 ${formatTime(draftAttempt.review_due_at)} KST`:''}</p><button className="text-button" disabled={!!busy} onClick={()=>void run('초안 요청 재시도',()=>submitDraft())}>저장된 초안 요청 재시도 →</button></div></div>}
  {page!=='approval'&&<form className="panel query-panel" onSubmit={page==='investigation'?analyze:e=>{e.preventDefault();void run('근거 검색',()=>searchEvidence(input()));}}><div className="panel-heading"><h2>조사 조건</h2><span className="muted">접근 가능한 근거만 조회합니다</span></div><div className="query-grid"><div><label htmlFor="asset">자산 ID</label><input id="asset" list="assets" maxLength={80} required value={asset} disabled={!!busy} onChange={e=>{setAsset(e.target.value);invalidate();}}/><datalist id="assets">{assets.map(a=><option key={a} value={a}/>)}</datalist></div><div><label htmlFor="query">문서 검색어</label><input id="query" maxLength={1000} placeholder="sensor, inspection, SOP-A103…" value={query} disabled={!!busy} onChange={e=>{setQuery(e.target.value);invalidate();}}/></div><div><label htmlFor="effective">유효 시점 <span title="업무상 이 시점에 유효한 근거">ⓘ</span></label><input id="effective" type="datetime-local" required value={effective} disabled={!!busy} onChange={e=>{setEffective(e.target.value);invalidate();}}/></div><div><label htmlFor="known">알려진 시점 <span title="시스템이 이 시점까지 관측한 근거">ⓘ</span></label><input id="known" type="datetime-local" required value={known} disabled={!!busy} onChange={e=>{setKnown(e.target.value);invalidate();}}/></div></div><div className="query-footer"><span className="muted">유효 시점 = 업무 기준 · 알려진 시점 = 당시 관측 기준</span><div className="button-row"><button type="button" className="secondary" disabled={!!busy} onClick={()=>{setEffective(kstInput());setKnown(kstInput());invalidate();}}>현재 시점</button><button className="primary" disabled={!!busy}>{page==='investigation'?'근거 분석 →':'근거 조회 →'}</button></div></div></form>}
  {page==='investigation'&&<><div className="section-heading"><h2>판정 결과</h2><span className="muted">규칙 기반 근거 검증 · 생성형 답변 아님</span></div>{analysis?<><section className={`panel decision-panel ${analysis.state==='SUPPORTED'?'supported':'attention'}`}><div className="decision-top"><span className="decision-icon">{analysis.state==='SUPPORTED'?'✓':'!'}</span><div><Badge state={analysis.state}/><h2>{actionLabel(analysis.recommended_action)}</h2><p>{reasonLabel(analysis.reason)}</p></div><div className="decision-action">{session.role==='engineer'&&<label>검토 요청 기한 (KST, 선택)<input type="datetime-local" value={reviewDue} onChange={e=>setReviewDue(e.target.value)} disabled={!!busy||!!draftAttempt}/></label>}<button className="primary" disabled={!!busy||!!draftAttempt||analysis.state!=='SUPPORTED'||session.role!=='engineer'||!analyzedInput||!freshProposal} onClick={()=>{if(analyzedInput)void run('초안 생성',()=>submitDraft(analyzedInput));}}>작업 초안 생성 →</button><small>{!freshProposal?'과거·미래 시점 분석은 읽기 전용입니다. 현재 시점으로 다시 분석하세요.':session.role==='engineer'?'승인 전에는 실행되지 않습니다':'초안 생성은 engineer 권한이 필요합니다'}</small></div></div><div className="decision-meta"><span>자산 <strong>{analyzedInput?.asset_id}</strong></span><span>유효 <strong>{formatTime(analysis.effective_at)}</strong></span><span>관측 <strong>{formatTime(analysis.known_as_of)}</strong></span><span>인용 <strong>{analysis.citations.length}건</strong></span></div></section><section className="panel"><div className="panel-heading"><h2>판정에 사용한 근거 <span className="count">{analysis.citations.length}</span></h2><button className="text-button" onClick={()=>setPage('timeline')}>타임라인에서 보기 ↗</button></div><Citations items={analysis.citations}/><Details data={analysis} title="판정 원본 상세"/></section></>:<section className="panel"><Empty title="조사할 자산과 시점을 선택하세요">분석하면 판정, 권장 조치, 인용 근거를 이곳에서 확인할 수 있습니다.</Empty><div className="example-row"><span className="muted">합성 예시</span><button className="text-button" disabled={!!busy} onClick={()=>{setAsset('A-103');setEffective(kstInput());setKnown(kstInput());invalidate();}}>A-103 · 현재 근거</button><button className="text-button" disabled={!!busy} onClick={()=>{setAsset('A-104');setEffective('2026-09-20T10:00');setKnown('2026-09-20T10:00');invalidate();}}>A-104 · 과거 시점 재현</button></div></section>}<div className="info-strip"><span>◇</span><div><strong>근거가 일치해도 실행에는 별도 승인이 필요합니다.</strong><p>시간·권한·충돌 여부는 서버 정책으로 판정합니다. 검색어는 문서 검색에만 사용됩니다.</p></div></div></>}
@@ -387,18 +404,55 @@ function App(){
       <div><dt>검토 버전</dt><dd>{selected.review_version}</dd></div>
       {typeof selected.review_due_at==='string'&&<div><dt>검토 기한</dt><dd>{formatTime(selected.review_due_at)} KST</dd></div>}
      </dl>
+     <div className="review-columns"><div className="review-source">
      <section className="approval-evidence" aria-labelledby="approval-evidence-title">
       <div className="approval-evidence-heading">
-       <h4 id="approval-evidence-title">인용 근거</h4>
+       <h4 id="approval-evidence-title">초안에 고정된 근거</h4>
        <button className="text-button" disabled={!!busy||!selected.evidence_reviewable||!selected.review_context} onClick={()=>void run('초안 시점 비교',compareDraft)}>초안 이후 근거 변화 비교 →</button>
       </div>
+      {selected.review_context&&<dl className="pinned-clocks"><div><dt>고정 업무 유효 시점</dt><dd>{formatTime(selected.review_context.effective_at)} KST</dd></div><div><dt>초안 관측 시점</dt><dd>{formatTime(selected.review_context.known_as_of)} KST</dd></div></dl>}
+      <p className="source-readiness">현재 근거 검토: <strong>{selected.evidence_reviewable===true?'가능':selected.evidence_reviewable===false?'불가':'미확인'}</strong> · 검토 v{selected.review_version}</p>
+      <button className="secondary" disabled={!!busy||selected.evidence_reviewable!==true||!selected.review_context} onClick={()=>void run('현재 관측 비교',compareInPlace)}>이 작업대에서 현재 관측 비교</button>
+      {inlineComparison&&inlineComparison.generation===detailGeneration.current&&selected.evidence_reviewable===true&&<section className="inline-comparison" aria-label="현재 관측 비교 결과">
+       <p><strong>{inlineComparison.data.changed?'초안 이후 판단 또는 인용 변화 있음':'초안 이후 판단과 인용 동일'}</strong></p>
+       <p>동일 업무 유효 시점 고정 · 관측 {formatTime(inlineComparison.observedAt)} KST</p>
+       <div className="inline-comparison-pair">{([{title:'초안 관측',value:inlineComparison.data.before},{title:'현재 관측',value:inlineComparison.data.after}]).map(({title,value})=><div key={title}><h5>{title}</h5><Badge state={value.state}/><p>{actionLabel(value.recommended_action)}</p><ul>{value.citations.map(c=><li key={c.evidence_id}>{c.source_id} · v{c.source_version}<small>{c.locator}</small></li>)}</ul></div>)}</div>
+       <p>읽기 전용 비교입니다. 승인과 실행 권한은 서버가 다시 검증합니다.</p>
+      </section>}
       {selected.citations?.length?<ul className="citation-list">
        {selected.citations.map(c=><li key={c.evidence_id}>
         <div><strong>{c.evidence_id}</strong><span className="version">v{c.source_version}</span></div>
-        <span>출처 {c.source_id}</span><span>{c.locator}</span>
+        <span>출처 {c.source_id}</span><span>{c.locator}</span><details><summary>고정 원본 식별자</summary><code className="hash">{c.checksum}</code></details>
        </li>)}
       </ul>:<p className="muted">현재 표시할 수 있는 인용 근거가 없습니다.</p>}
      </section>
+     <details className="approval-context">
+      <summary>검토 시점과 초안 해시</summary>
+      <dl className="review-meta">
+       {selected.review_context&&<>
+        <dt>검토 주장</dt><dd>{selected.review_context.claim_key}</dd>
+        <dt>유효 시점</dt><dd>{formatTime(selected.review_context.effective_at)} KST</dd>
+        <dt>관측 시점</dt><dd>{formatTime(selected.review_context.known_as_of)} KST</dd>
+       </>}
+       <dt>초안 해시</dt><dd className="hash">{selected.fingerprint??'조회되지 않음'}</dd>
+      </dl>
+      <p className="muted">승인은 이 해시에 결합되며 변경된 초안은 서버에서 거부됩니다.</p>
+     </details>
+     <details className="review-history" open><summary>감사 이력 · 승인 당시 원문 <span className="count">{audit.length}</span></summary>
+     {audit.length?<ol className="audit-list">{audit.map((a,i)=><li key={i}><i/><div>
+      <strong>{label(a.kind)}</strong>
+      <small>{typeof a.actor==='string'?a.actor:JSON.stringify(a.actor)} · {formatTime(a.logged_at)}</small>
+      {a.kind==='APPROVED'&&(a.approved_documents?.length?<details>
+       <summary>승인 당시 문서 열기</summary>
+       {a.approved_documents.map(d=><section key={d.evidence_id}><h5>{d.source_id} · v{d.source_version}</h5><p>{d.locator}</p><p className="evidence-text">{d.text}</p><code className="hash">{d.checksum}</code></section>)}
+      </details>:<small>승인 당시 문서가 기록되지 않았거나 현재 열람할 수 없습니다.</small>)}
+      {a.kind==='HANDOVER'&&a.details&&<><small>{a.details.from_approver??'미지정'} → {a.details.to_approver??'미지정'}</small><small>사유 {a.details.reason}</small></>}
+     </div></li>)}</ol>:<p className="muted">기록된 감사 이력이 없습니다.</p>}
+     </details>
+     <Details data={selected} title="요청 원본 상세"/>
+     </div><aside className="review-decision" aria-label="권한과 실행 결과">
+      <p className="rail-label">결정 및 실행</p>
+      <dl className="decision-authority"><dt>현재 계정</dt><dd>{session.user_id} · {session.role}</dd><dt>판단 상태</dt><dd>{!guidance?'미확인 · 상태 조회 필요':guidance.reason==='OUTCOME_UNKNOWN'?'결과 불확실 · 영수증 조회':allowed.decide||allowed.execute?'현재 계정의 조치 가능':selected.state==='PENDING_APPROVAL'?'승인 대기 · 현재 계정 조치 잠김':'저장된 결과 확인'}</dd></dl>
      <section className="approval-actions" aria-labelledby="approval-actions-title">
       <h4 id="approval-actions-title">다음 조치</h4>
       {!guidance&&<p><strong>행동 정보 미확인</strong> · 상태를 다시 조회하세요.</p>}
@@ -444,29 +498,7 @@ function App(){
       <p className="hash">{selected.receipt_id}</p>
       <Details data={selected.receipt??{receipt_id:selected.receipt_id}} title="영수증 상세 확인"/>
      </div>}
-     <details className="approval-context">
-      <summary>검토 시점과 초안 해시</summary>
-      <dl className="review-meta">
-       {selected.review_context&&<>
-        <dt>검토 주장</dt><dd>{selected.review_context.claim_key}</dd>
-        <dt>유효 시점</dt><dd>{formatTime(selected.review_context.effective_at)} KST</dd>
-        <dt>관측 시점</dt><dd>{formatTime(selected.review_context.known_as_of)} KST</dd>
-       </>}
-       <dt>초안 해시</dt><dd className="hash">{selected.fingerprint??'조회되지 않음'}</dd>
-      </dl>
-      <p className="muted">승인은 이 해시에 결합되며 변경된 초안은 서버에서 거부됩니다.</p>
-     </details>
-     <h4>감사 이력 <span className="count">{audit.length}</span></h4>
-     {audit.length?<ol className="audit-list">{audit.map((a,i)=><li key={i}><i/><div>
-      <strong>{label(a.kind)}</strong>
-      <small>{typeof a.actor==='string'?a.actor:JSON.stringify(a.actor)} · {formatTime(a.logged_at)}</small>
-      {a.kind==='APPROVED'&&(a.approved_documents?.length?<details>
-       <summary>승인 당시 문서 열기</summary>
-       {a.approved_documents.map(d=><section key={d.evidence_id}><h5>{d.source_id} · v{d.source_version}</h5><p>{d.locator}</p><p className="evidence-text">{d.text}</p><code className="hash">{d.checksum}</code></section>)}
-      </details>:<small>승인 당시 문서가 기록되지 않았거나 현재 열람할 수 없습니다.</small>)}
-      {a.kind==='HANDOVER'&&a.details&&<><small>{a.details.from_approver??'미지정'} → {a.details.to_approver??'미지정'}</small><small>사유 {a.details.reason}</small></>}
-     </div></li>)}</ol>:<p className="muted">기록된 감사 이력이 없습니다.</p>}
-     <Details data={selected} title="요청 원본 상세"/>
+     </aside></div>
     </div>:!detailLoading&&<p className="approval-empty">{error?'요청을 다시 선택하거나 목록을 새로고침하세요.':'목록에서 검토할 요청을 선택하세요.'}</p>}
    </section>
   </div>

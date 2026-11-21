@@ -69,3 +69,5 @@ Phase2 Chromium156 verification completed: native keyboard flow,1440/390px docum
 2026-11-20 Windows 설치본은 BOM 없는 시작 JSON과 시작 실패 안내를 반영했다. 격리 설치본의 WPF에서 초안 복구·인계·재승인·실행 영수증을 확인했다. 한 차례 발생한 Windows 소켓 오류 10014는 앱 재시도로 복구했으며, 시스템 수준 원인과 일반 배포 수용은 미완료다. WORK_LOG.md 참조.
 
 2026-11-21 기존 WPF 설치 구성에서 승인함의 목록·근거·승인과 인계 결과가 이어지는 화면을 검증했다. 동일 웹 빌드의 키보드·권한·이전 응답 회귀도 통과했다. 사용자 설치 환경과 일반 배포 검증은 별도다. WORK_LOG.md 참조.
+
+2026-11-21 격리 후보: 승인함 병렬 큐·근거·권한/영수증 레일과 기존 API를 이용한 작업대 내 관측 비교를 구현했다. 검증·디스크/Windows 환경 한계는 WORK_LOG.md와 workspace outputs/desktop-redesign/opspilot/actual에 기록한다. G0/G1·공개 배포·운영 수용 상태는 변경하지 않는다.
