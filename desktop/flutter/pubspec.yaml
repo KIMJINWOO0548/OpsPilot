@@ -1,0 +1,12 @@
+name: opspilot_review_windows
+description: Isolated OpsPilot Windows review workbench comparison
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  crypto: 3.0.7
+flutter:
+  uses-material-design: true

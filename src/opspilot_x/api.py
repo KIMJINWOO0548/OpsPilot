@@ -9,7 +9,7 @@ import uuid
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -19,10 +19,13 @@ import hmac
 from . import auth
 from .evidence_store import initialize_evidence, authorized_evidence, search_evidence
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from .eie import evaluate
 from .comparison import compare_snapshots
+from .hybrid import HybridAnalysis, HybridRag
+from .local_models import LocalModels
+from .pdf_report import MAX_REPORT_BYTES, render_approved_report
 from .schema import (Actor, AnalyzeRequest, AnalysisComparison, CompareRequest, Citation,
                      DecisionRequest, ExecuteRequest)
 
@@ -50,6 +53,7 @@ class ProposalDetail(BaseModel):
     assigned_approver: str | None = None
     fingerprint: str | None = None
     receipt_id: str | None = None
+    report_available: bool = False
     approval_valid: bool | None = None
     handover_allowed: bool | None = None
     review_due_at: str | None = None
@@ -80,6 +84,10 @@ class AnalysisInput(AnalyzeRequest):
     actor: Actor | None = None
 
 
+class HybridInput(AnalysisInput):
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=400)]
+
+
 class ComparisonInput(CompareRequest):
     actor: Actor | None = None
 
@@ -90,6 +98,7 @@ class DecisionInput(DecisionRequest):
 
 class ExecuteInput(ExecuteRequest):
     actor: Actor | None = None
+    output: Literal["mock", "pdf"] = "mock"
 
 
 class LoginInput(BaseModel):
@@ -155,7 +164,7 @@ def _fingerprint(request: AnalyzeRequest, result) -> str:
     return hashlib.sha256(_serialize(payload).encode()).hexdigest()
 
 
-def create_app(db_path: str | Path | None = None) -> FastAPI:
+def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = None) -> FastAPI:
     path = str(db_path or os.getenv("OPSPILOT_DB", "./opspilot_demo.sqlite3"))
     app = FastAPI(title="OpsPilot-X", version="0.2.0")
     auth.initialize(path)
@@ -266,6 +275,11 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             created_at TEXT NOT NULL,
             FOREIGN KEY(proposal_id) REFERENCES proposals(id)
         );
+        CREATE TABLE IF NOT EXISTS proposal_reports(
+            proposal_id TEXT PRIMARY KEY REFERENCES work_orders(proposal_id),
+            receipt_id TEXT NOT NULL REFERENCES work_orders(receipt_id),
+            fingerprint TEXT NOT NULL, sha256 TEXT NOT NULL, document BLOB NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS audit(
             event_id TEXT PRIMARY KEY,
             proposal_id TEXT NOT NULL,
@@ -372,18 +386,33 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(409, "Evidence changed; proposal expired")
         return snapshot
 
-    def operation_key(proposal_id):
-        return hashlib.sha256(f"work-order:{proposal_id}:v1".encode()).hexdigest()
+    def operation_key(proposal_id, output="mock"):
+        kind = "pdf-report" if output == "pdf" else "work-order"
+        return hashlib.sha256(f"{kind}:{proposal_id}:v1".encode()).hexdigest()
 
     def operation_receipt(db, proposal_id):
-        return db.execute("SELECT * FROM work_orders WHERE idempotency_key=? OR proposal_id=?",
-                          (operation_key(proposal_id), proposal_id)).fetchone()
+        return db.execute("SELECT * FROM work_orders WHERE idempotency_key IN (?,?) OR proposal_id=?",
+                          (operation_key(proposal_id), operation_key(proposal_id, "pdf"), proposal_id)).fetchone()
 
-    def receipt_matches(receipt, row):
-        return (receipt["idempotency_key"] == operation_key(row["id"])
-                and receipt["proposal_id"] == row["id"]
-                and receipt["action"] == row["action"]
-                and bool(receipt["receipt_id"].strip()))
+    def report_row(db, proposal_id):
+        return db.execute(
+            "SELECT receipt_id, fingerprint, sha256, CASE WHEN length(document) BETWEEN 1 AND ? "
+            "THEN document END AS document FROM proposal_reports WHERE proposal_id=?",
+            (MAX_REPORT_BYTES, proposal_id),
+        ).fetchone()
+
+    def receipt_matches(db, receipt, row):
+        if (receipt["proposal_id"] != row["id"] or receipt["action"] != row["action"]
+                or not receipt["receipt_id"].strip()):
+            return False
+        report = report_row(db, row["id"])
+        if receipt["idempotency_key"] == operation_key(row["id"]):
+            return report is None
+        return (receipt["idempotency_key"] == operation_key(row["id"], "pdf")
+                and report is not None and report["receipt_id"] == receipt["receipt_id"]
+                and report["fingerprint"] == row["fingerprint"]
+                and isinstance(report["document"], bytes)
+                and hashlib.sha256(report["document"]).hexdigest() == report["sha256"])
 
     def receipt_unavailable(db, row, actor):
         # Missing or inconsistent evidence cannot establish that an earlier operation had no effect.
@@ -469,6 +498,31 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.post("/api/v1/analysis")
     def analyze(request: AnalysisInput, actor: Actor = Depends(principal)):
         return evaluate_authorized(request.model_copy(update={"actor": actor}))
+
+    @app.post("/api/v1/analysis/hybrid", response_model=HybridAnalysis)
+    def analyze_hybrid(body: HybridInput, request: Request, actor: Actor = Depends(principal)):
+        if hybrid is None:
+            raise HTTPException(503, "Local model is not configured. Use evidence analysis or start the local model.")
+        analysis_request = AnalyzeRequest(**body.model_dump(exclude={"actor", "query"}), actor=actor)
+        with connection() as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            live_actor(db, request, actor)
+            candidates = authorized_evidence(
+                path, actor, asset_id=body.asset_id, known_as_of=body.known_as_of, connection=db,
+            )
+        result = hybrid.analyze(analysis_request, candidates, body.query)
+        # Inference may outlast the session or an account change.
+        with connection() as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            live_actor(db, request, actor)
+            current = authorized_evidence(
+                path, actor, asset_id=body.asset_id, known_as_of=body.known_as_of, connection=db,
+            )
+            if current != candidates:
+                raise HTTPException(409, "Evidence access or snapshot changed; retry the analysis.")
+        return result
 
     @app.post("/api/v1/analysis/compare", response_model=AnalysisComparison)
     def compare(request: ComparisonInput, actor: Actor = Depends(principal)):
@@ -560,7 +614,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             assigned = assignee or row["decided_by"]
             handover = (eligible and assigned != actor.user_id and state in ("PENDING_APPROVAL", "APPROVED", "UNKNOWN_RECONCILE")
                         and (state == "UNKNOWN_RECONCILE" or receipt is not None or reviewable))
-            receipt_ok = receipt is not None and receipt_matches(receipt, row)
+            receipt_ok = receipt is not None and receipt_matches(db, receipt, row)
             guidance = proposal_guidance(state, receipt_present=receipt is not None, receipt_matches_row=receipt_ok,
                 reconciler=eligible and assigned == actor.user_id, handover=handover, evidence_reviewable=reviewable,
                 approval_is_valid=valid, assigned_elsewhere=assignee is not None and assignee != actor.user_id, review_version=version)
@@ -576,6 +630,8 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 created_at=row["created_at"], decided_by=row["decided_by"], assigned_approver=assignee,
                 approval_valid=valid, handover_allowed=handover, fingerprint=row["fingerprint"],
                 citations=snapshot.citations, receipt_id=receipt["receipt_id"] if state == "SUCCEEDED" and receipt_ok else None)
+            if state == "SUCCEEDED" and receipt_ok:
+                result["report_available"] = receipt["idempotency_key"] == operation_key(proposal_id, "pdf")
             if row["review_due_at"] is not None:
                 result["review_due_at"] = row["review_due_at"]
             if reviewable:
@@ -671,17 +727,44 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             if row["state"] == "UNKNOWN_RECONCILE":
                 return receipt_unavailable(db, row, actor)
             receipt = operation_receipt(db, proposal_id)
-            if receipt is not None and not receipt_matches(receipt, row):
+            if receipt is not None and not receipt_matches(db, receipt, row):
                 return receipt_unavailable(db, row, actor)
+            if receipt is not None and receipt["idempotency_key"] != operation_key(proposal_id, body.output):
+                raise HTTPException(409, "This proposal already has a different execution receipt")
             if receipt is None:
                 if row["state"] != "APPROVED":
                     return receipt_unavailable(db, row, actor)
                 if not approval_valid(db, row, generation):
                     raise HTTPException(409, "Approval no longer valid; handover and reapproval required")
-                require_current_evidence(db, row, actor)
-                key = operation_key(proposal_id)
+                snapshot = require_current_evidence(db, row, actor)
+                key = operation_key(proposal_id, body.output)
+                receipt_id = str(uuid.uuid4())
+                created = clock()
+                document = None
+                if body.output == "pdf":
+                    approval = db.execute(
+                        "SELECT logged_at FROM audit WHERE proposal_id=? AND kind='APPROVED' "
+                        "AND actor=? ORDER BY logged_at DESC LIMIT 1",
+                        (proposal_id, actor.user_id),
+                    ).fetchone()
+                    if approval is None:
+                        raise HTTPException(409, "Approval record not available")
+                    try:
+                        document = render_approved_report(
+                            proposal_id=proposal_id, receipt_id=receipt_id, approver=actor.user_id,
+                            approved_at=approval["logged_at"], fingerprint=row["fingerprint"],
+                            request=AnalyzeRequest.model_validate_json(row["request_json"]), snapshot=snapshot,
+                        )
+                    except ValueError:
+                        raise HTTPException(422, "Approved snapshot could not be rendered as a report") from None
                 db.execute("INSERT INTO work_orders VALUES (?,?,?,?,?)",
-                           (key, proposal_id, str(uuid.uuid4()), row["action"], clock()))
+                           (key, proposal_id, receipt_id, row["action"], created))
+                if document is not None:
+                    digest = hashlib.sha256(document).hexdigest()
+                    db.execute("INSERT INTO proposal_reports VALUES (?,?,?,?,?)",
+                               (proposal_id, receipt_id, row["fingerprint"], digest, document))
+                    log(db, proposal_id, "PDF_CREATED", actor.user_id,
+                        {"receipt_id": receipt_id, "sha256": digest, "fingerprint": row["fingerprint"]})
                 receipt = db.execute("SELECT receipt_id FROM work_orders WHERE idempotency_key=?",
                                      (key,)).fetchone()
             if body.simulate_response_loss and row["state"] != "SUCCEEDED":
@@ -712,12 +795,33 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                 raise HTTPException(409, "Not in reconcilable state")
             receipt = db.execute("SELECT * FROM work_orders WHERE proposal_id=?",
                                  (proposal_id,)).fetchone()
-            if receipt and receipt_matches(receipt, row):
+            if receipt and receipt_matches(db, receipt, row):
                 db.execute("UPDATE proposals SET state='SUCCEEDED' WHERE id=?", (proposal_id,))
                 log(db, proposal_id, "RECONCILED", actor.user_id)
                 db.commit()
                 return {"state": "SUCCEEDED", "receipt_id": receipt["receipt_id"]}
             return receipt_unavailable(db, row, actor)
+
+    @app.get("/api/v1/proposals/{proposal_id}/report")
+    def download_report(proposal_id: str, http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
+            row = row_or_404(db, proposal_id)
+            readable(row, actor)
+            receipt = operation_receipt(db, proposal_id)
+            if row["state"] != "SUCCEEDED" or receipt is None:
+                raise HTTPException(409, "Confirm the execution receipt before downloading")
+            if receipt["idempotency_key"] != operation_key(proposal_id, "pdf"):
+                raise HTTPException(404, "No PDF report for this proposal")
+            if not receipt_matches(db, receipt, row) or not evidence_snapshot(db, row, actor)[3]:
+                raise HTTPException(409, "Report integrity or evidence access could not be confirmed")
+            report = report_row(db, proposal_id)
+            return Response(report["document"], media_type="application/pdf", headers={
+                "Content-Disposition": 'attachment; filename="opspilot-approved-report.pdf"',
+                "ETag": f'"{report["sha256"]}"',
+            })
 
     def readable(row, actor):
         if (actor.tenant != row["tenant"] or actor.team != row["team"]
@@ -798,4 +902,19 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+def configured_hybrid() -> HybridRag | None:
+    embedding_port = os.getenv("OPSPILOT_EMBED_PORT")
+    chat_port = os.getenv("OPSPILOT_CHAT_PORT")
+    if embedding_port is None and chat_port is None:
+        return None
+    if not embedding_port or not chat_port:
+        raise ValueError("Configure both OPSPILOT_EMBED_PORT and OPSPILOT_CHAT_PORT")
+    key = os.getenv("OPSPILOT_MODEL_KEY")
+    if key is not None and re.fullmatch(r"[a-f0-9]{64}", key) is None:
+        raise ValueError("Invalid local model service key")
+    options = {"api_key": key} if key is not None else {}
+    models = LocalModels(embedding_port=int(embedding_port), chat_port=int(chat_port), **options)
+    return HybridRag(models.embed, models.generate)
+
+
+app = create_app(hybrid=configured_hybrid())

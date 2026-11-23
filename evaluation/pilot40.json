@@ -1,0 +1,146 @@
+{
+  "version": "pilot40-v1",
+  "datetime_convention": "October 2026 UTC, each day at 12:00. Validity end is exclusive.",
+  "families": [
+    {
+      "id": "wireless-gateway", "split": "development",
+      "symptom": "wireless gateway reports duplicate address leases after roaming",
+      "action_a": "inspect_dhcp_lease_history",
+      "instruction_a": "Inspect the DHCP lease history before resetting the radio.",
+      "action_b": "compare_gateway_reservation_map",
+      "instruction_b": "Compare the gateway reservation map before resetting the radio.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["before-correction", "retroactive", 10, 14, ["policy-a", "retro-b", "note"], "SUPPORTED", "policy-a"],
+        ["after-correction", "retroactive", 10, 16, ["policy-a", "retro-b", "note"], "SUPPORTED", "retro-b"],
+        ["aligned-authority", "conflict", 10, 16, ["policy-a", "conflict-b", "note"], "CONFLICT", null]
+      ]
+    },
+    {
+      "id": "artifact-mirror", "split": "development",
+      "symptom": "artifact mirror serves a build with an unexpected checksum",
+      "action_a": "validate_build_provenance",
+      "instruction_a": "Validate the build provenance before clearing the mirror cache.",
+      "action_b": "compare_signed_release_manifest",
+      "instruction_b": "Compare the signed release manifest before clearing the mirror cache.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["before-cutover", "effective-time", 11, 18, ["expiring-a", "upcoming-b", "note"], "SUPPORTED", "expiring-a"],
+        ["cutover-boundary", "effective-time", 12, 18, ["expiring-a", "upcoming-b", "note"], "SUPPORTED", "upcoming-b"],
+        ["another-team", "acl", 16, 18, ["policy-a", "foreign-team", "note"], "SUPPORTED", "policy-a"]
+      ]
+    },
+    {
+      "id": "service-desk-ingest", "split": "development",
+      "symptom": "service desk ingestion retries the same support envelope continuously",
+      "action_a": "trace_envelope_deduplication",
+      "instruction_a": "Trace the envelope deduplication key before replaying the envelope.",
+      "action_b": "check_retry_ledger",
+      "instruction_b": "Check the retry ledger before replaying the envelope.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["published-correction", "retroactive", 10, 16, ["policy-a", "retro-b", "note"], "SUPPORTED", "retro-b"],
+        ["incident-only", "insufficient", 10, 16, ["note"], "INSUFFICIENT", null],
+        ["approver-only-policy", "acl", 10, 16, ["policy-a", "restricted-role", "note"], "SUPPORTED", "policy-a"]
+      ]
+    },
+    {
+      "id": "batch-broker", "split": "development",
+      "symptom": "batch worker broker shows a growing queue of accepted jobs",
+      "action_a": "inspect_consumer_checkpoints",
+      "instruction_a": "Inspect consumer checkpoints before reassigning waiting jobs.",
+      "action_b": "verify_dispatch_watermark",
+      "instruction_b": "Verify the dispatch watermark before reassigning waiting jobs.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["expired-playbook", "effective-time", 12, 16, ["expiring-a"], "STALE", null],
+        ["tenant-isolation", "acl", 10, 16, ["policy-a", "foreign-tenant", "note"], "SUPPORTED", "policy-a"],
+        ["two-valid-playbooks", "conflict", 10, 16, ["policy-a", "conflict-b"], "CONFLICT", null]
+      ]
+    },
+    {
+      "id": "certificate-monitor", "split": "development",
+      "symptom": "certificate monitor signals a renewal while the endpoint still reports the current chain",
+      "action_a": "inspect_probe_certificate_chain",
+      "instruction_a": "Inspect the probe certificate chain before closing the alert.",
+      "action_b": "compare_renewal_inventory",
+      "instruction_b": "Compare the renewal inventory before closing the alert.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["future-only", "effective-time", 11, 16, ["upcoming-b"], "INSUFFICIENT", null],
+        ["restricted-only", "acl", 10, 16, ["restricted-role", "note"], "INSUFFICIENT", null],
+        ["contradictory-steps", "conflict", 10, 16, ["policy-a", "conflict-b"], "CONFLICT", null]
+      ]
+    },
+    {
+      "id": "log-relay", "split": "development",
+      "symptom": "log relay queue reports delayed forwarding but uplink remains healthy",
+      "action_a": "compare_relay_cursor",
+      "instruction_a": "Compare the relay cursor before pausing forwarding.",
+      "action_b": "check_forwarder_batch_sequence",
+      "instruction_b": "Check the forwarder batch sequence before pausing forwarding.",
+      "cases": [
+        ["handover-day", "effective-time", 12, 16, ["expiring-a", "upcoming-b", "note"], "SUPPORTED", "upcoming-b"],
+        ["private-yard", "acl", 10, 16, ["foreign-team", "foreign-tenant"], "INSUFFICIENT", null],
+        ["no-source", "insufficient", 10, 16, [], "INSUFFICIENT", null],
+        ["unapproved-operations-note", "insufficient", 10, 16, ["note"], "INSUFFICIENT", null]
+      ]
+    },
+    {
+      "id": "identity-reconciler", "split": "holdout",
+      "symptom": "identity reconciler shows stale directory membership after a sync",
+      "action_a": "compare_directory_sync_cursor",
+      "instruction_a": "Compare the directory sync cursor before starting another reconciliation.",
+      "action_b": "inspect_membership_event_ledger",
+      "instruction_b": "Inspect the membership event ledger before starting another reconciliation.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["later-correction-hidden", "retroactive", 10, 14, ["policy-a", "retro-b"], "SUPPORTED", "policy-a"],
+        ["later-correction-known", "retroactive", 10, 16, ["policy-a", "retro-b"], "SUPPORTED", "retro-b"],
+        ["peer-approvals-disagree", "conflict", 10, 16, ["policy-a", "conflict-b"], "CONFLICT", null]
+      ]
+    },
+    {
+      "id": "snapshot-index", "split": "holdout",
+      "symptom": "snapshot index omits the latest scheduled storage backup",
+      "action_a": "review_backup_catalog_digest",
+      "instruction_a": "Review the backup catalog digest before attempting a restore.",
+      "action_b": "compare_snapshot_job_record",
+      "instruction_b": "Compare the snapshot job record before attempting a restore.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["day-before", "effective-time", 11, 18, ["expiring-a", "upcoming-b"], "SUPPORTED", "expiring-a"],
+        ["first-day", "effective-time", 12, 18, ["expiring-a", "upcoming-b"], "SUPPORTED", "upcoming-b"],
+        ["backup-team-only", "acl", 10, 16, ["foreign-team", "note"], "INSUFFICIENT", null]
+      ]
+    },
+    {
+      "id": "telemetry-ingress", "split": "holdout",
+      "symptom": "telemetry ingress shows accepted events without corresponding sample counts",
+      "action_a": "compare_ingress_batch_ids",
+      "instruction_a": "Compare ingress batch IDs before recycling the receiver.",
+      "action_b": "inspect_sampling_job_summary",
+      "instruction_b": "Inspect the sampling job summary before recycling the receiver.",
+      "cases": [
+        ["routine", "supported", 10, 10, ["policy-a", "note"], "SUPPORTED", "policy-a"],
+        ["retroactively-superseded", "retroactive", 10, 16, ["policy-a", "retro-b", "note"], "SUPPORTED", "retro-b"],
+        ["conflicting-authorities", "conflict", 10, 16, ["policy-a", "conflict-b", "note"], "CONFLICT", null],
+        ["another-organisation", "acl", 10, 16, ["policy-a", "foreign-tenant"], "SUPPORTED", "policy-a"]
+      ]
+    },
+    {
+      "id": "alert-routing", "split": "holdout",
+      "symptom": "alert routing fans out duplicate notifications for one service event",
+      "action_a": "compare_alert_fingerprints",
+      "instruction_a": "Compare the alert fingerprints before changing the delivery policy.",
+      "action_b": "review_route_audit",
+      "instruction_b": "Review the route audit before changing the delivery policy.",
+      "cases": [
+        ["expired", "effective-time", 12, 16, ["expiring-a"], "STALE", null],
+        ["role-denial", "acl", 10, 16, ["restricted-role", "note"], "INSUFFICIENT", null],
+        ["observation-without-policy", "insufficient", 10, 16, ["note"], "INSUFFICIENT", null],
+        ["ambiguous-first-step", "conflict", 10, 16, ["policy-a", "conflict-b", "note"], "CONFLICT", null]
+      ]
+    }
+  ]
+}
