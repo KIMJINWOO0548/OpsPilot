@@ -53,7 +53,8 @@ def initialize_evidence(path: str | Path, records: list[Evidence] | None = None)
 
 def authorized_evidence(path: str | Path, actor: Actor, asset_id: str | None = None,
                         known_as_of: datetime | None = None, *,
-                        connection: sqlite3.Connection | None = None) -> list[Evidence]:
+                        connection: sqlite3.Connection | None = None,
+                        evidence_id: str | None = None) -> list[Evidence]:
     clauses = ["d.tenant=?", "d.team=?", "a.role=?"]
     parameters = [actor.tenant, actor.team, actor.role]
     if asset_id is not None:
@@ -62,6 +63,9 @@ def authorized_evidence(path: str | Path, actor: Actor, asset_id: str | None = N
     if known_as_of is not None:
         clauses.append("d.recorded_at<=?")
         parameters.append(_clock(known_as_of))
+    if evidence_id is not None:
+        clauses.append("d.evidence_id=?")
+        parameters.append(evidence_id)
     # All interpolated clauses are constants; caller data is always bound.
     query = ("SELECT d.payload FROM evidence_documents d JOIN evidence_acl a "
              "ON a.evidence_id=d.evidence_id WHERE " + " AND ".join(clauses)

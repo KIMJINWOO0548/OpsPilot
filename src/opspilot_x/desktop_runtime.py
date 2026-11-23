@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import hmac
 import json
@@ -16,6 +17,8 @@ import sys
 import threading
 
 from . import auth
+
+_STARTUP_ATTEMPTS = 3
 
 
 class DesktopBoundary:
@@ -139,33 +142,59 @@ def run(data_dir, web_dir, stream, output):
     from .api import app
     import uvicorn
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-        listener.bind(('127.0.0.1', 0))
-        origin = f'http://127.0.0.1:{listener.getsockname()[1]}'
-        boundary = DesktopBoundary(app, origin, token)
-        config = uvicorn.Config(boundary, host='127.0.0.1', proxy_headers=False,
-                                access_log=False, log_config=None, log_level='critical',
-                                timeout_graceful_shutdown=5)
+    stopped = threading.Event()
+    server = None
 
-        class DesktopServer(uvicorn.Server):
-            async def startup(self, sockets=None):
-                await super().startup(sockets=sockets)
-                if self.started and not self.should_exit:
-                    emit(output, 'ready', origin=origin, token=token)
-
-        server = DesktopServer(config)
-
-        def watch_parent():
-            try:
-                while read_message(stream).get('event') != 'stop':
-                    pass
-            except (ValueError, OSError):
+    def watch_parent():
+        try:
+            while read_message(stream).get('event') != 'stop':
                 pass
-            finally:
-                server.should_exit = True
+        except (ValueError, OSError):
+            pass
+        finally:
+            stopped.set()
+            current = server
+            if current is not None:
+                current.should_exit = True
 
-        threading.Thread(target=watch_parent, daemon=True, name='desktop-parent').start()
-        server.run(sockets=[listener])
+    class DesktopServer(uvicorn.Server):
+        async def startup(self, sockets=None):
+            await super().startup(sockets=sockets)
+            if self.started and not self.should_exit and not stopped.is_set():
+                emit(output, 'ready', origin=origin, token=token)
+
+    threading.Thread(target=watch_parent, daemon=True, name='desktop-parent').start()
+    for attempt in range(1, _STARTUP_ATTEMPTS + 1):
+        if stopped.is_set():
+            return 0
+        server = None
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+                listener.bind(('127.0.0.1', 0))
+                origin = f'http://127.0.0.1:{listener.getsockname()[1]}'
+                boundary = DesktopBoundary(app, origin, token)
+                config = uvicorn.Config(boundary, host='127.0.0.1', proxy_headers=False,
+                                        access_log=False, log_config=None, log_level='critical',
+                                        timeout_graceful_shutdown=5)
+                server = DesktopServer(config)
+                # Initialize the loop before creating the serve coroutine, so a
+                # failed WinSock self-pipe setup leaves no unawaited coroutine.
+                with asyncio.Runner() as runner:
+                    if stopped.is_set():
+                        return 0
+                    runner.run(server.serve(sockets=[listener]))
+            return 0
+        except OSError as error:
+            if (getattr(error, 'winerror', None) != 10014
+                    or attempt == _STARTUP_ATTEMPTS
+                    or (server is not None and server.started)):
+                raise
+            # Release the listener and any initialized loop before retrying.
+            sys.stderr.write(
+                f'Desktop loopback startup interrupted (WinError 10014). '
+                f'Retrying ({attempt + 1}/{_STARTUP_ATTEMPTS}).\n'
+            )
+            stopped.wait(0.1 * attempt)
     return 0
 
 

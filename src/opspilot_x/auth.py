@@ -11,6 +11,7 @@ from .schema import Actor
 ITERATIONS = 600_000
 SESSION_SECONDS = 8 * 3600
 COOKIE = "opspilot_session"
+LOGIN_WINDOW_SECONDS = 15 * 60
 
 @contextmanager
 def connection(path):
@@ -55,18 +56,23 @@ def create_user(path, *, username, password, user_id=None, tenant, team, role):
 
 
 def login(path, username, password, address):
-    now = time.time()
     buckets = [hashlib.sha256(('user:' + username).encode()).hexdigest(),
                hashlib.sha256(('ip:' + address).encode()).hexdigest()]
+    reservations = []
     with connection(path) as db:
         db.execute('BEGIN IMMEDIATE')
-        db.execute('DELETE FROM login_attempts WHERE started_at < ?', (now - 900,))
+        now = time.time()
+        db.execute('DELETE FROM login_attempts WHERE started_at < ?', (now - LOGIN_WINDOW_SECONDS,))
         for bucket, limit in zip(buckets, (10, 50)):
-            row = db.execute('SELECT attempts FROM login_attempts WHERE bucket=?', (bucket,)).fetchone()
+            row = db.execute('SELECT attempts,started_at FROM login_attempts WHERE bucket=?', (bucket,)).fetchone()
             if row and row['attempts'] >= limit:
                 return None
-        for bucket in buckets:
-            db.execute('INSERT INTO login_attempts VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1', (bucket, now))
+            reservations.append((bucket, row['started_at'] if row else now))
+        # Count in-flight password checks so concurrent attempts cannot oversubscribe a bucket.
+        db.executemany(
+            'INSERT INTO login_attempts VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1',
+            reservations,
+        )
         row = db.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
     salt = bytes.fromhex(row['salt']) if row else bytes(16)
     digest = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, ITERATIONS).hex()
@@ -82,6 +88,15 @@ def login(path, username, password, address):
             return None
         db.execute('DELETE FROM sessions WHERE expires_at <= ?', (now,))
         db.execute('INSERT INTO sessions VALUES (?,?,?,?)', (token_hash(token), username, csrf, now + SESSION_SECONDS))
+        # Refund only this successful login's reservations, within the original windows.
+        db.executemany(
+            'UPDATE login_attempts SET attempts=attempts-1 WHERE bucket=? AND started_at=? AND attempts>0',
+            reservations,
+        )
+        db.executemany(
+            'DELETE FROM login_attempts WHERE bucket=? AND started_at=? AND attempts=0',
+            reservations,
+        )
     return token, dict(Actor(**{k: current[k] for k in ('user_id','tenant','team','role')}).model_dump(), csrf_token=csrf)
 
 

@@ -1,2 +1,5 @@
 # Evaluation artifacts are pinned by raw SHA256; preserve their original bytes on every platform.
 /evaluation/examples/** -text
+
+# PDF cross-reference offsets are tied to byte positions in the exported file.
+/docs/portfolio/*.pdf binary

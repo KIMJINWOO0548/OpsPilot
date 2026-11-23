@@ -12,7 +12,11 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../Assets/OpsPilot.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="../Assets/OpsPilot.ico" Link="Resources/OpsPilot.ico" />
+  </ItemGroup>
   <ItemGroup Condition="'$(PayloadPath)' != ''">
     <EmbeddedResource Include="$(PayloadPath)" LogicalName="OpsPilot.Payload.zip" />
   </ItemGroup>

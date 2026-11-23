@@ -1,0 +1,80 @@
+/* Actual Chromium source UI; synthetic API interception, no backend/competitor claim. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_CORE);
+const root=path.resolve(__dirname,'..'),dist=path.join(root,'web/dist'),out=path.resolve(process.argv[2]||path.join(root,'.local/browser-evidence'));fs.mkdirSync(out,{recursive:true});
+const saved={claim_key:'inspection_priority',effective_at:'2026-09-20T01:00:31.123Z',known_as_of:'2026-09-21T01:00:32.456Z'};
+const citation={evidence_id:'synthetic-source',source_id:'source',source_version:'1',locator:'section1',checksum:'a'.repeat(64)};
+const proposal={proposal_id:'synthetic-proposal',state:'PENDING_APPROVAL',action:'manual_inspection',owner_user:'engineer-1',asset_id:'A-104',fingerprint:'b'.repeat(64),citations:[citation],evidence_reviewable:true,review_context:saved,review_version:0,guidance:{version:1,reason:'NONE',actions:[],review_version:0}};
+const analysis={state:'SUPPORTED',recommended_action:'manual_inspection',reason:'Visible synthetic SOP',citations:[citation],effective_at:saved.effective_at,known_as_of:saved.known_as_of};
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});const posts=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin!=='http://opspilot.test')return route.abort();let data;
+ if(u.pathname==='/health')data={ok:true};
+ else if(u.pathname==='/api/v1/auth/me')data={user_id:'engineer-1',role:'engineer',tenant:'demo',team:'team_a',csrf_token:'synthetic-only'};
+ else if(u.pathname==='/api/v1/proposals')data={items:[proposal]};
+ else if(u.pathname==='/api/v1/draft-intent'&&route.request().method()==='GET')data={attempt:null};
+ else if(u.pathname==='/api/v1/demo/scenarios')data={assets:['A-104']};
+ else if(u.pathname.endsWith('/audit'))data={items:[]};
+ else if(u.pathname==='/api/v1/proposals/synthetic-proposal')data=proposal;
+ else if(u.pathname==='/api/v1/analysis/compare'){const body=route.request().postDataJSON();posts.push({path:u.pathname,body});data={before:analysis,after:{...analysis,known_as_of:body.after_known_as_of},changed:false,changes:{state_changed:false,action_changed:false,added_citations:[],removed_citations:[]}};}
+ else if(u.pathname==='/api/v1/analysis'){const body=route.request().postDataJSON();posts.push({path:u.pathname,body});data={...analysis,effective_at:body.effective_at,known_as_of:body.known_as_of};}
+ else if(u.pathname.startsWith('/api/'))throw new Error('Unexpected request '+u.pathname);
+ if(data)return route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+ const file=path.resolve(dist,u.pathname==='/'?'index.html':'.'+u.pathname);if(!file.startsWith(dist+path.sep)||!fs.existsSync(file))return route.fulfill({status:404,body:''});return route.fulfill({path:file,contentType:{'.js':'text/javascript','.css':'text/css','.html':'text/html'}[path.extname(file)]});});
+ try{await page.goto('http://opspilot.test/');await page.getByRole('button',{name:/Approval Inbox/}).click();await page.locator('.proposal-link').click();
+
+ await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).click();
+ await page.getByRole('region',{name:'현재 관측 비교 결과'}).waitFor();
+ assert.equal(posts[0].body.effective_at,saved.effective_at);assert.equal(posts[0].body.before_known_as_of,saved.known_as_of);
+ assert.equal(await page.locator('.proposal-id').innerText(),proposal.proposal_id);
+ await page.getByRole('button',{name:'↻ 상태 조회'}).click();
+ await page.getByRole('region',{name:'현재 관측 비교 결과'}).waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).waitFor({state:'visible'});
+ await page.route('**/api/v1/analysis/compare',route=>route.fulfill({status:503,json:{detail:'합성 비교 조회 오류'}}),{times:1});
+ await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).click();
+ await page.getByRole('alert').filter({hasText:'합성 비교 조회 오류'}).waitFor();
+ assert.equal(await page.getByRole('region',{name:'현재 관측 비교 결과'}).count(),0);
+ assert.equal(await page.locator('.proposal-id').innerText(),proposal.proposal_id);
+ await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).click();
+ await page.getByRole('region',{name:'현재 관측 비교 결과'}).waitFor();
+ await page.route('**/api/v1/proposals/synthetic-proposal',route=>route.fulfill({json:{...proposal,evidence_reviewable:false,citations:[],review_context:null,review_version:1}}),{times:1});
+ await page.getByRole('button',{name:'↻ 상태 조회'}).click();
+ await page.getByRole('region',{name:'현재 관측 비교 결과'}).waitFor({state:'hidden'});
+ assert.equal(await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).isDisabled(),true);
+ await page.getByRole('button',{name:'↻ 상태 조회'}).click();
+ await page.getByRole('button',{name:'이 작업대에서 현재 관측 비교'}).click();
+ await page.getByRole('region',{name:'현재 관측 비교 결과'}).waitFor();
+ posts.splice(0);
+ const layouts=[];
+ for(const width of [1600,1186,946,632,390]){
+  await page.setViewportSize({width,height:900});
+  const metric=await page.evaluate(()=>({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,columns:getComputedStyle(document.querySelector('.review-columns')).gridTemplateColumns,queue:getComputedStyle(document.querySelector('.approval-layout')).gridTemplateColumns}));
+  assert.equal(metric.overflow,0);layouts.push(metric);
+  await page.screenshot({path:path.join(out,`workbench-${width}.png`),fullPage:true});
+ }
+ fs.writeFileSync(path.join(out,'layout.json'),JSON.stringify(layouts,null,2));
+ await page.setViewportSize({width:1440,height:900});
+ await page.getByRole('button',{name:'초안 이후 근거 변화 비교 →'}).click();await page.locator('.comparison-next-step').waitFor();assert.equal(posts[0].body.effective_at,saved.effective_at);assert.equal(posts[0].body.before_known_as_of,saved.known_as_of);
+ const viewports=[];for(const width of [1440,390]){await page.setViewportSize({width,height:900});await page.locator('.comparison-next-step').scrollIntoViewIfNeeded();const metrics=await page.evaluate(()=>({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,buttonHeight:document.querySelector('.comparison-next-step button').getBoundingClientRect().height}));assert.equal(metrics.overflow,0);assert.ok(metrics.buttonHeight>=44);viewports.push(metrics);await page.screenshot({path:path.join(out,`temporal-handoff-${width}.png`),fullPage:true});}
+ await page.locator('.comparison-next-step button').focus();await page.keyboard.press('Enter');await page.locator('.decision-panel').waitFor();assert.equal(posts.length,2);assert.equal(posts[1].path,'/api/v1/analysis');assert.equal(posts[1].body.effective_at,posts[1].body.known_as_of);assert.notEqual(posts[1].body.effective_at,saved.effective_at);assert.equal(await page.getByRole('button',{name:'작업 초안 생성 →'}).isEnabled(),true);assert.deepEqual(errors,[]);
+ await page.setViewportSize({width:1440,height:900});
+ await page.getByRole('button',{name:/Approval Inbox/}).click();
+ const proposalLink=page.locator('.proposal-link');
+ const invalidAudits=[{contentType:'text/html',body:'<html>Response unavailable</html>'},{json:{items:null}}];
+ for(const invalidAudit of invalidAudits){
+   await page.route('**/audit',route=>route.fulfill({status:200,...invalidAudit}),{times:1});
+   await proposalLink.click();
+   await page.getByRole('alert').filter({hasText:'응답'}).waitFor({timeout:5000});
+   await proposalLink.click();
+   await page.locator('.proposal-id').filter({hasText:proposal.proposal_id}).waitFor();
+   await page.getByRole('alert').waitFor({state:'hidden'});
+ }
+ await page.route('**/api/v1/proposals/synthetic-proposal',route=>route.fulfill({json:{...proposal,proposal_id:'different-proposal'}}),{times:1});
+ await proposalLink.click();
+ await page.getByRole('alert').filter({hasText:'응답'}).waitFor({timeout:5000});
+ await proposalLink.click();
+ await page.locator('.proposal-id').filter({hasText:proposal.proposal_id}).waitFor();
+ await page.getByRole('alert').waitFor({state:'hidden'});
+ assert.deepEqual(errors,[]);
+ fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({status:'PASS',scope:'actual Chromium UI; intercepted synthetic API; backend separately tested',browser:browser.version(),viewports,requestPaths:posts.map(p=>p.path),exactSavedClocks:true,invalidAuditsRecovered:invalidAudits.length,wrongProposalRejected:true,errors},null,2));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
