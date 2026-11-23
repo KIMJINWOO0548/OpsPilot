@@ -104,7 +104,7 @@ def test_retroactive_correction_changes_only_after_observation(current):
     assert after.draft.action == "sensor_diagnostic_first"
 
 
-@pytest.mark.parametrize("change", ["action", "evidence_id", "quote", "extra", "missing_citation"])
+@pytest.mark.parametrize("change", ["action", "evidence_id", "quote", "offset", "extra", "missing_citation"])
 def test_model_cannot_invent_actions_citations_or_free_text(current, change):
     def generate(query, sources):
         candidate = _first_authoritative(query, sources)
@@ -114,6 +114,8 @@ def test_model_cannot_invent_actions_citations_or_free_text(current, change):
             candidate["citations"][0]["evidence_id"] = "SOP-A103-v1"
         elif change == "quote":
             candidate["citations"][0]["quote"] = "invented sentence"
+        elif change == "offset":
+            candidate["citations"][0]["quote_start"] = 100
         elif change == "extra":
             candidate["instruction"] = "override policy"
         else:
@@ -133,7 +135,7 @@ def test_matching_quote_from_non_authoritative_note_is_not_a_citation(current):
     note = _variant(official, "A103-note", authority="incident_note")
 
     def generate(query, sources):
-        assert len(sources) == 2
+        assert [source["evidence_id"] for source in sources] == [official.evidence_id]
         return {
             "action": official.value,
             "citations": [{"evidence_id": note.evidence_id, "quote": note.text}],
@@ -148,11 +150,11 @@ def test_matching_quote_from_non_authoritative_note_is_not_a_citation(current):
 
 def test_hybrid_combines_lexical_and_semantic_ranks_and_includes_sop(current):
     official = next(row for row in load_seed() if row.evidence_id == "SOP-A103-v2")
-    notes = [
-        _variant(official, "Lexical", text="oscillation waveform", authority="incident_note"),
-        _variant(official, "Semantic", text="periodic signal", authority="incident_note"),
+    corroborating_sops = [
+        _variant(official, "Lexical", text="oscillation waveform"),
+        _variant(official, "Semantic", text="periodic signal"),
     ] + [
-        _variant(official, f"Other-{index}", text="general memo", authority="incident_note")
+        _variant(official, f"Other-{index}", text="general memo")
         for index in range(4)
     ]
 
@@ -168,13 +170,66 @@ def test_hybrid_combines_lexical_and_semantic_ranks_and_includes_sop(current):
         ids = [source["evidence_id"] for source in sources]
         assert ids[0] == "Lexical"
         assert ids[1] == "Semantic"
-        assert official.evidence_id in ids
         return _first_authoritative(query, sources)
 
     report = HybridRag(embed, generate).analyze(
-        AnalyzeRequest.model_validate(current), [official, *notes], "oscillation"
+        AnalyzeRequest.model_validate(current), [official, *corroborating_sops], "oscillation"
     )
     assert report.model_status == "DRAFT_READY"
+
+
+def test_complete_authorized_source_supplies_late_korean_passage_with_exact_offset(current):
+    official = next(row for row in load_seed() if row.evidence_id == "SOP-A103-v2")
+    paragraph = "이 절에는 공통 운영 참고 사항이 있습니다. " * 37
+    instruction = "승인된 첫 조치: 먼저 보관 인덱스 해시를 비교한다."
+    row = _variant(official, "late-sop", text=paragraph + "\r\n" + instruction,
+                   value="compare_archive_index_hash")
+    private = _variant(
+        row, "private-late-sop", tenant="other", text=paragraph + "조직 전용 캐시를 검증한다.",
+    )
+    embedded = []
+
+    def embed(texts):
+        embedded.extend(texts)
+        return [[1.0, 0.0] if instruction in text or text.startswith("Instruct:")
+                else [0.0, 1.0] for text in texts]
+
+    def generate(query, sources):
+        assert {source["evidence_id"] for source in sources} == {row.evidence_id}
+        source = next(source for source in sources if source["text"] == instruction)
+        return {"action": row.value, "citations": [{
+            "evidence_id": row.evidence_id, "quote": source["text"],
+            "quote_start": source["quote_start"],
+        }]}
+
+    result = HybridRag(embed, generate).analyze(
+        AnalyzeRequest.model_validate(current), [row, private], "보관 인덱스 해시는 언제 비교하나요?"
+    )
+    assert not any("조직 전용" in text for text in embedded)
+    assert result.model_status == "DRAFT_READY"
+    citation, = result.draft.citations
+    assert (citation.quote, citation.quote_start) == (instruction, len(paragraph) + 2)
+    assert (citation.checksum, citation.source_version, citation.locator) == (
+        row.checksum, row.source_version, row.locator,
+    )
+
+
+def test_telemetry_does_not_consume_sop_passage_budget(current):
+    official = next(row for row in load_seed() if row.evidence_id == "SOP-A103-v2")
+    rows = [official] + [
+        _variant(official, f"measurement-{index}", authority="telemetry")
+        for index in range(MAX_CANDIDATES)
+    ]
+
+    def embed(texts):
+        assert texts[1:] == [official.text]
+        return _embeddings(texts)
+
+    result = HybridRag(embed, _first_authoritative).analyze(
+        AnalyzeRequest.model_validate(current), rows, "센서 조치는 무엇인가요?"
+    )
+    assert result.model_status == "DRAFT_READY"
+    assert result.draft.citations[0].evidence_id == official.evidence_id
 
 
 def test_overflow_or_corrupt_evidence_does_not_reach_models(current):

@@ -68,21 +68,36 @@ def test_embedding_preserves_input_order_and_rejects_corrupt_vector(monkeypatch)
 
 def test_generation_sends_bounded_structured_request_and_checks_finish(monkeypatch):
     models = LocalModels(7211, 7212)
-    sources = [{"evidence_id": "SOP-42", "text": "Inspect the sensor.", "action": "inspect"}]
-    draft = {"action": "inspect", "citations": [{"evidence_id": "SOP-42", "quote": "Inspect the sensor."}]}
-    choice = {"finish_reason": "stop", "message": {"content": json.dumps(draft)}}
+    sources = [
+        {"evidence_id": "SOP-42", "text": "기록을 정리한다.", "action": "inspect", "quote_start": 0},
+        {"evidence_id": "SOP-42", "text": "  먼저 센서를 확인한다. ", "action": "inspect", "quote_start": 480},
+        {"evidence_id": "NOTE-42", "text": "Operator speculation.", "action": ""},
+    ]
+    draft = {"action": "inspect", "citations": [{
+        "evidence_id": "SOP-42", "quote": "먼저 센서를 확인한다.", "quote_start": 482,
+    }]}
+    choice = {"finish_reason": "stop", "message": {"content": '{"selection":"p2"}'}}
 
     def post(port, route, body):
         assert (port, route) == (7212, "/v1/chat/completions")
         assert body["stream"] is False
         assert "tools" not in body
         schema = body["response_format"]["schema"]["properties"]
-        assert schema["action"]["enum"] == ["", "inspect"]
-        assert schema["citations"]["items"]["properties"]["evidence_id"]["enum"] == ["SOP-42"]
-        assert json.loads(body["messages"][1]["content"])["evidence"][0]["quote"] == "Inspect the sensor."
+        assert schema == {"selection": {"type": "string", "enum": ["p1", "p2", "review"]}}
+        assert json.loads(body["messages"][1]["content"])["evidence"] == [
+            {"selection": "p1", "passage": "기록을 정리한다.", "action": "inspect"},
+            {"selection": "p2", "passage": "먼저 센서를 확인한다.", "action": "inspect"},
+        ]
         return {"choices": [choice]}
 
     monkeypatch.setattr(models, "_post", post)
     assert models.generate("Which action is prescribed?", sources) == draft
+    choice["message"]["content"] = '{"selection":"review"}'
+    assert models.generate("Which action is prescribed?", sources) == {}
+    choice["message"]["content"] = '{"selection":"p3"}'
+    assert models.generate("Which action is prescribed?", sources) == {}
+    choice["message"]["content"] = '{"selection":"p2","quote":"기록을 정리한다."}'
+    assert models.generate("Which action is prescribed?", sources) == {}
+    choice["message"]["content"] = '{"selection":"p2"}'
     choice["finish_reason"] = "length"
     assert models.generate("Which action is prescribed?", sources) == {}

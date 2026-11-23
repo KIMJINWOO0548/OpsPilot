@@ -143,7 +143,7 @@ class _ReviewDeskState extends State<ReviewDesk> {
     String option(String name) {
       final index = args.indexOf(name);
       if (index < 0 || index + 1 >= args.length)
-        throw const FormatException('격리된 합성 DB와 기존 Windows 엔진을 지정해 시작하세요.');
+        throw const FormatException('작업공간 데이터와 Windows 엔진을 지정해 시작하세요.');
       return args[index + 1];
     }
 

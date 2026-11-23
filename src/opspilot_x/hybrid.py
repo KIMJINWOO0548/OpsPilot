@@ -5,8 +5,8 @@ import hashlib
 import math
 import re
 from collections import Counter
-from collections.abc import Callable
-from typing import Literal
+from collections.abc import Callable, Iterator
+from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -14,9 +14,24 @@ from .eie import authorized, effective_at, evaluate
 from .schema import Analysis, AnalyzeRequest, Citation, Evidence
 
 MAX_CANDIDATES = 64
+# Input size of the historical prefix-based evaluation arm.
 SOURCE_CHARS = 700
 TOP_K = 4
 EMBEDDING_BATCH = 16
+PASSAGE_CHARS = 240
+_PASSAGE_OVERLAP = 80
+_MAX_AUTHORIZED_CHARS = 256_000
+_MAX_PASSAGES = 4_096
+_RERANK_PASSAGES = 16
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?。！？])(?=\s)|[\r\n]+")
+_ACTION_CUE = re.compile(r"\b(?:first|approved instruction|initially)\b|먼저|우선|첫 조치", re.I)
+
+
+class ModelSource(TypedDict):
+    evidence_id: str
+    text: str
+    action: str
+    quote_start: NotRequired[int]
 
 ModelStatus = Literal[
     "DRAFT_READY",
@@ -34,7 +49,8 @@ class ModelUnavailable(RuntimeError):
 class _ProposedCitation(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     evidence_id: str = Field(min_length=1, max_length=120)
-    quote: str = Field(min_length=1, max_length=240)
+    quote: str = Field(min_length=1, max_length=PASSAGE_CHARS)
+    quote_start: int | None = Field(default=None, ge=0)
 
 
 class _ModelOutput(BaseModel):
@@ -73,7 +89,40 @@ def _current_evidence(request: AnalyzeRequest, candidates: list[Evidence]) -> li
 
 
 def _terms(text: str) -> list[str]:
-    return re.findall(r"\w+", text.casefold())
+    terms = re.findall(r"\w+", text.casefold())
+    # Korean word endings differ between a question and instructions.
+    for word in re.findall(r"[가-힣]+", text):
+        terms.extend("ko:" + word[index:index + 2] for index in range(len(word) - 1))
+    return terms
+
+
+def _sentence_spans(text: str) -> Iterator[tuple[int, int]]:
+    if len(text) <= PASSAGE_CHARS:
+        yield 0, len(text)
+        return
+    start = 0
+    for boundary in _SENTENCE_BREAK.finditer(text):
+        yield start, boundary.start()
+        start = boundary.end()
+    yield start, len(text)
+
+
+def _passages(evidence: Evidence) -> Iterator[ModelSource]:
+    seen = set()
+    for start, end in _sentence_spans(evidence.text):
+        while start < end:
+            stop = min(start + PASSAGE_CHARS, end)
+            raw = evidence.text[start:stop]
+            quote = raw.strip()
+            if quote and quote not in seen:
+                seen.add(quote)
+                yield {
+                    "evidence_id": evidence.evidence_id, "text": quote, "action": evidence.value,
+                    "quote_start": start + len(raw) - len(raw.lstrip()),
+                }
+            if stop == end:
+                break
+            start = stop - _PASSAGE_OVERLAP
 
 
 def _bm25(query: str, texts: list[str]) -> list[float]:
@@ -114,7 +163,7 @@ class HybridRag:
     def __init__(
         self,
         embed: Callable[[list[str]], list[list[float]]],
-        generate: Callable[[str, list[dict[str, str]]], dict],
+        generate: Callable[[str, list[ModelSource]], dict],
     ):
         self.embed = embed
         self.generate = generate
@@ -130,27 +179,33 @@ class HybridRag:
             return HybridAnalysis(analysis=analysis, model_status="POLICY_BLOCKED")
         if not analysis.recommended_action:
             return HybridAnalysis(analysis=analysis, model_status="MODEL_REVIEW_REQUIRED")
-        current = _current_evidence(request, candidates)
-        if len(current) > MAX_CANDIDATES:
+        canonical = {citation.evidence_id: citation for citation in analysis.citations}
+        # EIE evaluated the full applicable set, including records affecting supersession.
+        # Its current authoritative SOPs are the sources eligible for a draft citation.
+        current = [
+            record for record in _current_evidence(request, candidates)
+            if record.evidence_id in canonical and record.authority == "approved_sop"
+        ]
+        if (len(current) > MAX_CANDIDATES
+                or sum(len(record.text) for record in current) > _MAX_AUTHORIZED_CHARS):
             return HybridAnalysis(analysis=analysis, model_status="CONTEXT_LIMIT")
-        if any(hashlib.sha256(record.text.encode("utf8")).hexdigest() != record.checksum
-               for record in current):
+        if len(current) != len(canonical) or any(
+            canonical[record.evidence_id].checksum != record.checksum
+            or hashlib.sha256(record.text.encode("utf8")).hexdigest() != record.checksum
+            for record in current
+        ):
             return HybridAnalysis(analysis=analysis, model_status="MODEL_REVIEW_REQUIRED")
 
-        canonical = {citation.evidence_id: citation for citation in analysis.citations}
-        sources = [
-            {
-                "evidence_id": record.evidence_id,
-                "text": record.text[:SOURCE_CHARS],
-                "action": record.value if record.evidence_id in canonical else "",
-            }
-            for record in current
-        ]
+        sources = []
+        for record in current:
+            for passage in _passages(record):
+                if len(sources) == _MAX_PASSAGES:
+                    return HybridAnalysis(analysis=analysis, model_status="CONTEXT_LIMIT")
+                sources.append(passage)
+        if not sources:
+            return HybridAnalysis(analysis=analysis, model_status="MODEL_REVIEW_REQUIRED")
         try:
-            ranked = self._rank(query, sources)
-            selected = ranked[:TOP_K]
-            if not any(source["action"] for source in selected):
-                selected[-1] = next(source for source in ranked if source["action"])
+            selected = self._rank(query, sources)[:TOP_K]
             output = self.generate(query, selected)
         except ModelUnavailable:
             return HybridAnalysis(analysis=analysis, model_status="MODEL_UNAVAILABLE")
@@ -161,15 +216,21 @@ class HybridRag:
             return HybridAnalysis(analysis=analysis, model_status="MODEL_REVIEW_REQUIRED")
         return HybridAnalysis(analysis=analysis, model_status="DRAFT_READY", draft=draft)
 
-    def _rank(self, query: str, sources: list[dict[str, str]]) -> list[dict[str, str]]:
+    def _rank(self, query: str, sources: list[ModelSource]) -> list[ModelSource]:
         texts = [source["text"] for source in sources]
-        # Empty evidence text carries no retrieval signal, so use its authorized action
-        # as the display/index fallback. A returned quote still has to come from text.
-        search_instruction = "Instruct: Given a maintenance question, retrieve relevant policy evidence"
-        embedding_texts = [f"{search_instruction}\nQuery: {query}"] + [
-            text or source["action"] or "[empty evidence]"
-            for text, source in zip(texts, sources, strict=True)
+        lexical = _bm25(query, texts)
+        tie_breakers = [
+            (not _ACTION_CUE.search(source["text"][:80]), source["evidence_id"], source["quote_start"])
+            for source in sources
         ]
+        # Lexical search covers every exact passage. Embed only the bounded shortlist.
+        order = sorted(range(len(sources)), key=lambda index: (-lexical[index], *tie_breakers[index]))
+        order = order[:_RERANK_PASSAGES]
+        sources = [sources[index] for index in order]
+        tie_breakers = [tie_breakers[index] for index in order]
+        lexical = [lexical[index] for index in order]
+        search_instruction = "Instruct: Given a maintenance question, retrieve relevant policy evidence"
+        embedding_texts = [f"{search_instruction}\nQuery: {query}"] + [source["text"] for source in sources]
         vectors = []
         for start in range(0, len(embedding_texts), EMBEDDING_BATCH):
             batch = embedding_texts[start:start + EMBEDDING_BATCH]
@@ -185,14 +246,13 @@ class HybridRag:
             ))
             for vector in vectors[1:]
         ]
-        lexical = _bm25(query, texts)
         scores = [0.0] * len(sources)
         # Reciprocal rank fusion uses comparable ranks for the two different score scales.
         # Zero lexical scores are absent from that ranking.
         for signals, include_zero in ((semantic, True), (lexical, False)):
             order = sorted(
                 range(len(sources)),
-                key=lambda index: (-signals[index], sources[index]["evidence_id"]),
+                key=lambda index: (-signals[index], *tie_breakers[index]),
             )
             for rank, index in enumerate(order, start=1):
                 if include_zero or signals[index] > 0:
@@ -200,32 +260,44 @@ class HybridRag:
         return [
             sources[index] for index in sorted(
                 range(len(sources)),
-                key=lambda index: (-scores[index], sources[index]["evidence_id"]),
+                key=lambda index: (-scores[index], *tie_breakers[index]),
             )
         ]
 
     @staticmethod
     def _validate(
         output: dict,
-        sources: list[dict[str, str]],
+        sources: list[ModelSource],
         analysis: Analysis,
         canonical: dict[str, Citation],
     ) -> HybridDraft:
         proposed = _ModelOutput.model_validate(output)
         if proposed.action != analysis.recommended_action:
             raise ValueError("Draft action differs from the EIE determination")
-        presented = {source["evidence_id"]: source["text"] for source in sources}
         citations = []
         used = set()
         for item in proposed.citations:
-            if (item.evidence_id in used or item.evidence_id not in canonical
-                    or item.evidence_id not in presented or not item.quote.strip()):
+            if item.evidence_id in used or item.evidence_id not in canonical or not item.quote.strip():
                 raise ValueError("Unexpected citation")
-            offset = presented[item.evidence_id].find(item.quote)
-            if offset < 0:
-                raise ValueError("Quote does not match the evidence")
+            offsets = set()
+            for source in sources:
+                if source["evidence_id"] != item.evidence_id:
+                    continue
+                passage_start = source["quote_start"]
+                text = source["text"]
+                if item.quote_start is not None:
+                    position = item.quote_start - passage_start
+                    if position >= 0 and text.startswith(item.quote, position):
+                        offsets.add(item.quote_start)
+                else:
+                    position = text.find(item.quote)
+                    while position >= 0:
+                        offsets.add(passage_start + position)
+                        position = text.find(item.quote, position + 1)
+            if len(offsets) != 1:
+                raise ValueError("Quote does not match a unique source location")
             used.add(item.evidence_id)
             citations.append(DraftCitation(
-                **canonical[item.evidence_id].model_dump(), quote=item.quote, quote_start=offset
+                **canonical[item.evidence_id].model_dump(), quote=item.quote, quote_start=offsets.pop()
             ))
         return HybridDraft(action=proposed.action, citations=citations)

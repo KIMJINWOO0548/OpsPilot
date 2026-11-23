@@ -25,6 +25,7 @@ from .eie import evaluate
 from .comparison import compare_snapshots
 from .hybrid import HybridAnalysis, HybridRag
 from .local_models import LocalModels
+from .workspace import SOURCE_FIELDS, is_workspace_database
 from .pdf_report import MAX_REPORT_BYTES, render_approved_report
 from .schema import (Actor, AnalyzeRequest, AnalysisComparison, CompareRequest, Citation,
                      DecisionRequest, ExecuteRequest)
@@ -166,9 +167,10 @@ def _fingerprint(request: AnalyzeRequest, result) -> str:
 
 def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = None) -> FastAPI:
     path = str(db_path or os.getenv("OPSPILOT_DB", "./opspilot_demo.sqlite3"))
+    managed_workspace = is_workspace_database(path)
     app = FastAPI(title="OpsPilot-X", version="0.2.0")
     auth.initialize(path)
-    initialize_evidence(path)
+    initialize_evidence(path, records=[] if managed_workspace else None)
     secure_cookie = os.getenv("OPSPILOT_SECURE_COOKIE", "false").lower() == "true"
     web = Path(os.getenv("OPSPILOT_WEB_DIR", str(Path(__file__).resolve().parents[2] / "web")))
     if (web / "dist" / "assets").is_dir():
@@ -481,19 +483,48 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
 
     @app.get("/health")
     def health():
-        return {"ok": True, "mode": "local-demo-only", "benchmark_verified": False,
+        return {"ok": True, "mode": "local-workspace" if managed_workspace else "local-demo-only", "benchmark_verified": False,
                 "production_ready": False, "authentication": "server-session", "auth_required": True,
                 "ui_ready": (web / "dist" / "index.html").is_file(),
                 "remaining_gates": ["G0/G1 research acceptance", "OIDC", "Postgres/outbox", "external security review"]}
 
     @app.get("/api/v1/demo/scenarios")
-    def scenarios(actor: Actor = Depends(principal)):
+    def scenarios(http: Request, actor: Actor = Depends(principal)):
+        with connection() as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
+            visible = authorized_evidence(
+                path, actor, known_as_of=datetime.now(timezone.utc), connection=db,
+            )
+        claims: dict[str, set[str]] = {}
+        for item in visible:
+            claims.setdefault(item.asset_id, set()).add(item.claim_key)
         return {
-            "assets": sorted({item.asset_id for item in authorized_evidence(path, actor, known_as_of=datetime.now(timezone.utc))}),
-            "scenarios": ["current-v2", "historical-as-of", "retroactive-correction",
+            "assets": sorted(claims),
+            "claims_by_asset": {asset: sorted(keys) for asset, keys in claims.items()},
+            "managed_workspace": managed_workspace,
+            "scenarios": [] if managed_workspace else ["current-v2", "historical-as-of", "retroactive-correction",
                           "conflicting-sops", "acl-denial", "injection-as-data",
                           "response-loss-reconciliation"],
         }
+
+    @app.get("/api/v1/evidence/source")
+    def source(http: Request, evidence_id: str = Query(..., min_length=1, max_length=160),
+               known_as_of: datetime | None = None, actor: Actor = Depends(principal)):
+        cutoff = known_as_of or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None:
+            raise HTTPException(422, "Observation time must include an offset")
+        with connection() as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            actor = live_actor(db, http, actor)
+            sources = authorized_evidence(
+                path, actor, known_as_of=cutoff, connection=db, evidence_id=evidence_id,
+            )
+            if not sources:
+                raise HTTPException(404, "Source unavailable")
+            return sources[0].model_dump(include=SOURCE_FIELDS)
 
     @app.post("/api/v1/analysis")
     def analyze(request: AnalysisInput, actor: Actor = Depends(principal)):

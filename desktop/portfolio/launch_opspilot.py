@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import secrets
 import socket
+import sqlite3
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
@@ -157,10 +158,10 @@ def _start_model(server: Path, profile: Path, asset, key_file: Path, env: dict[s
         with log_path.open("rb") as log:
             if b"couldn't bind HTTP server socket" not in log.read(65536):
                 break
-    raise RuntimeError(f"The local {kind} model did not start. See demo-data/model-{kind}.log.")
+    raise RuntimeError(f"The local {kind} model did not start. Check model-{kind}.log in the profile.")
 
 
-def _run(bundle: Path, profile: Path) -> int:
+def _run(bundle: Path, profile: Path, *, managed: bool = False) -> int:
     runtime = bundle / "runtime"
     server = runtime / "llama" / "llama-server.exe"
     app = bundle / "opspilot_review_windows.exe"
@@ -186,7 +187,10 @@ def _run(bundle: Path, profile: Path) -> int:
                 processes.append(process)
                 ports.append(port)
 
-            print(f"Demo sign-ins: {profile / 'credentials.json'}", flush=True)
+            if managed:
+                print(f"Workspace: {profile}", flush=True)
+            else:
+                print(f"Demo sign-ins: {profile / 'credentials.json'}", flush=True)
             app_env = os.environ.copy()
             app_env.update(
                 OPSPILOT_CHAT_PORT=str(ports[0]),
@@ -206,17 +210,28 @@ def _run(bundle: Path, profile: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prepare", action="store_true", help="Seed or validate the synthetic demo profile")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--prepare", action="store_true", help="Seed or validate the synthetic demo profile")
+    modes.add_argument("--workspace", type=Path, help="Open a separately provisioned local workspace")
     args = parser.parse_args()
     bundle = Path(__file__).resolve().parent
     try:
         with _launch_lock(bundle):
+            if args.workspace is not None:
+                from opspilot_x.auth import connection
+                from opspilot_x.workspace import workspace_database
+
+                database = workspace_database(args.workspace)
+                with connection(database) as db:
+                    if db.execute("SELECT 1 FROM users WHERE disabled=0 LIMIT 1").fetchone() is None:
+                        raise RuntimeError("Create a workspace user with OpsPilot-Workspace.cmd before launching.")
+                return _run(bundle, database.parent, managed=True)
             profile = _prepare(bundle)
             if args.prepare:
                 print(json.dumps({"profile": str(profile), "credentials": str(profile / "credentials.json")}))
                 return 0
             return _run(bundle, profile)
-    except (OSError, RuntimeError) as error:
+    except (OSError, RuntimeError, ValueError, sqlite3.Error) as error:
         print(f"OpsPilot-X could not start: {error}", file=sys.stderr, flush=True)
         return 1
 

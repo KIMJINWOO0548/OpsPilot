@@ -1,13 +1,39 @@
-# OpsPilot-X Windows 포트폴리오 데모
+# OpsPilot-X Windows 로컬 작업공간
 
-ZIP의 파일을 Windows x64의 쓰기 가능한 로컬 폴더에 풀고 **OpsPilot-X.cmd**를 실행합니다. 이 번들에 Flutter 실행 파일, Python, 로컬 생성·임베딩 엔진, 합성 근거가 들어 있습니다. 두 로컬 모델이 준비되면 앱이 열립니다. 실행 창에 표시된 `demo-data/credentials.json`에 합성 작성자와 검토자 계정이 있습니다.
+Windows x64에서 ZIP을 쓰기 가능한 로컬 폴더에 풉니다. 압축에 Flutter, Python 런타임, 로컬 Qwen 생성·임베딩 서버가 포함됩니다. 운영 데이터는 운영자가 지정한 작업공간에 보관됩니다.
 
-1. 작성자로 로그인합니다. **요청 등록**에서 A-103의 AI 근거 초안과 정책 판정을 확인하고 요청을 올립니다.
-2. 설정에서 로그아웃하고 검토자 계정으로 전환합니다. 승인함에서 같은 요청과 근거 버전을 확인한 뒤 승인합니다.
-3. **PDF 생성**으로 승인 기록을 저장합니다. 응답 유실 연습을 선택한 경우 **결과 확인**으로 같은 영수증을 찾습니다. **PDF 저장**으로 파일을 받습니다.
+## 새 작업공간 시작
 
-번들을 다시 열면 같은 번들의 합성 작업 폴더를 사용합니다. 별도 깨끗한 시험은 새로운 빈 폴더에 ZIP을 풀어 시작합니다. 런타임 모델은 CPU에서 실행되며 첫 분석에 시간이 더 걸릴 수 있습니다.
+1. 명령 프롬프트에서 다음 명령을 실행합니다. 두 계정의 암호는 각각 입력하고, 사용자 이름·조직·팀은 사용할 값으로 바꿉니다.
 
-검증 순서는 Hybrid RAG와 로컬 LLM → 합성 비교 40건 → 승인 PDF → 이 Windows 번들입니다. PDF에는 승인자, 근거 ID, 버전, 위치, 원문 SHA-256과 승인 당시 두 시점이 들어갑니다.
+~~~bat
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" init
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" user-add --username author --tenant ops --team archive --role engineer
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" user-add --username reviewer --tenant ops --team archive --role approver
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" import "C:\Import\approved-evidence.json"
+OpsPilot-X.cmd --workspace "C:\OpsPilotData"
+~~~
 
-Qwen 생성·임베딩 모델은 Apache-2.0, llama.cpp는 MIT입니다. 첨부 고지와 파일 해시는 `licenses` 및 `release-manifest.json`에서 확인할 수 있습니다.
+2. 작성자로 로그인하고 자산·검토 항목을 선택합니다. AI 인용과 규칙 판정을 확인하고 원문을 열 수 있습니다. 확인한 근거로 검토 요청을 보냅니다.
+3. 검토자가 같은 작업공간에 로그인해 승인합니다. 승인 결과를 PDF로 생성하거나 응답 유실 후 실행 결과를 확인할 수 있습니다.
+
+작업공간 초기화는 새 디렉터리에서만 실행됩니다. 샘플 경로를 실행할 때에는 시작 인자 없이 `OpsPilot-X.cmd`를 실행합니다. 운영 작업공간과 샘플 데이터는 별도의 디렉터리에 저장됩니다.
+
+## 근거 반입
+
+[JSON 양식과 예시](evidence-template.json)를 복사해 조직·팀·자산·검토 항목·승인된 조치·유효 시점을 기록합니다. `text`에 실제 근거 구절을 넣고, `locator`에 원문에서 다시 찾을 위치를 적습니다. 버전을 바꿀 때는 새 `evidence_id`를 발급하고 같은 규정의 `source_id`를 유지합니다. 대체되는 이전 근거는 `supersedes`에 기록합니다.
+
+이 경로에는 현재 역할로 읽을 수 있게 승인된 자료만 반입합니다. SHA-256을 생략하면 반입 시 UTF-8 본문에서 계산합니다. 근거 ID는 120자, 원문 응답은 4 MiB까지 허용합니다. 손상된 해시, 날짜 경계 오류, 변경된 기존 근거 ID가 있으면 일괄 반입을 거부합니다. 같은 내용으로 다시 반입하면 기존 스냅샷을 유지합니다.
+
+## 계정·백업
+
+~~~bat
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" revoke-sessions --username reviewer
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" user-disable --username reviewer
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotData" backup "C:\Backups\opspilot-2026-11-23.sqlite3"
+OpsPilot-Workspace.cmd --profile "C:\OpsPilotRecovered" restore "C:\Backups\opspilot-2026-11-23.sqlite3"
+~~~
+
+앱을 한 번 기동한 뒤 새 목적지 파일에 백업합니다. 복원은 새 디렉터리에서 시작하며 복원본의 이전 계정과 세션은 비활성화됩니다. 운영자가 현재 권한과 승인·실행 이력을 대조한 뒤 필요한 계정을 새로 발급합니다. 작업공간 디렉터리를 읽을 수 있는 OS 계정은 로컬 파일과 SQLite를 읽을 수 있으므로 운영자만 이 디렉터리에 접근하도록 파일 권한을 구성합니다. 원격 공동 사용에서는 서버 인증·파일 권한·백업 절차를 별도로 검증합니다.
+
+Qwen 모델은 Apache-2.0, llama.cpp는 MIT입니다. 라이선스와 무결성 해시는 `licenses`와 `release-manifest.json`에 있습니다.

@@ -64,7 +64,7 @@ final class DesktopApi {
     final web = '${bundle.path}${sep}backend${sep}web${sep}dist';
     if (!await File(python).exists() ||
         !await File('${data.path}${sep}opspilot.sqlite3').exists()) {
-      throw const FormatException('격리된 합성 데이터와 앱 엔진을 확인하세요.');
+      throw const FormatException('작업공간 데이터와 앱 엔진을 확인하세요.');
     }
     if (!RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(data.path) ||
         !RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(bundle.path) ||

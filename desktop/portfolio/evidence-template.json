@@ -1,0 +1,20 @@
+[
+  {
+    "evidence_id": "ARCHIVE-RUNBOOK-002",
+    "tenant": "ops",
+    "team": "archive",
+    "readable_roles": ["engineer", "approver"],
+    "asset_id": "ARCHIVE-WORKER-17",
+    "claim_key": "first_action",
+    "value": "보관 인덱스 해시 비교",
+    "authority": "approved_sop",
+    "source_id": "ARCHIVE-RUNBOOK",
+    "source_version": "2",
+    "locator": "업무 지침 3절",
+    "text": "보관 목록이 불일치할 때는 먼저 보관 인덱스 해시를 비교한다.",
+    "valid_from": "2026-01-01T00:00:00Z",
+    "valid_to": null,
+    "recorded_at": "2026-01-01T00:00:00Z",
+    "supersedes": []
+  }
+]

@@ -24,9 +24,11 @@ class DraftRegistration extends StatefulWidget {
 class _DraftRegistrationState extends State<DraftRegistration> {
   final _query = TextEditingController();
   List<String> _assets = [];
-  String? _asset;
+  Map<String, List<String>> _claimsByAsset = {};
+  String? _asset, _claim;
   Json? _attempt, _preview, _reviewedInput, _hybrid;
   bool _busy = false, _loaded = false;
+  bool _managedWorkspace = false;
   String? _status, _rejectedKey;
 
   @override
@@ -71,6 +73,20 @@ class _DraftRegistrationState extends State<DraftRegistration> {
       throw const FormatException('조회할 수 있는 자산 목록을 확인할 수 없습니다.');
     }
     _assets = assets.whereType<String>().where((id) => id.isNotEmpty).toList();
+    final catalog = scenarios['claims_by_asset'];
+    _claimsByAsset = catalog is Map<String, dynamic>
+        ? {
+            for (final entry in catalog.entries)
+              if (entry.value is List)
+                entry.key: (entry.value as List).whereType<String>().toList(),
+          }
+        : {};
+    _managedWorkspace = scenarios['managed_workspace'] == true;
+    if (!_assets.contains(_asset)) {
+      _asset = _claim = null;
+    } else if (!_claims.contains(_claim)) {
+      _claim = _defaultClaim(_asset);
+    }
     _loaded = true;
   }
 
@@ -109,16 +125,41 @@ class _DraftRegistrationState extends State<DraftRegistration> {
   void _choose(String? asset) {
     setState(() {
       _asset = asset;
+      _claim = _defaultClaim(asset);
       _preview = _reviewedInput = _hybrid = null;
       _status = null;
     });
   }
 
+  List<String> get _claims => _claimsByAsset[_asset] ?? const [];
+
+  String? _defaultClaim(String? asset) {
+    if (asset == null) return null;
+    final claims = _claimsByAsset[asset] ?? const <String>[];
+    return claims.isEmpty || claims.contains('inspection_priority')
+        ? 'inspection_priority'
+        : claims.first;
+  }
+
+  void _chooseClaim(String? claim) {
+    setState(() {
+      _claim = claim;
+      _preview = _reviewedInput = _hybrid = null;
+      _status = null;
+    });
+  }
+
+  String _claimLabel(String claim) => switch (claim) {
+    'inspection_priority' => '우선 점검',
+    'first_action' => '첫 조치',
+    _ => claim.replaceAll('_', ' '),
+  };
+
   Json _currentRequest() {
     final stamp = DateTime.now().toUtc().toIso8601String();
     return <String, dynamic>{
       'asset_id': _asset,
-      'claim_key': 'inspection_priority',
+      'claim_key': _claim,
       'effective_at': stamp,
       'known_as_of': stamp,
     };
@@ -138,7 +179,7 @@ class _DraftRegistrationState extends State<DraftRegistration> {
   bool get _canRunHybrid =>
       widget.api.modelConfigured &&
       !_busy &&
-      _asset != null &&
+      _claim != null &&
       _query.text.trim().isNotEmpty;
 
   void _startHybrid() {
@@ -178,6 +219,52 @@ class _DraftRegistrationState extends State<DraftRegistration> {
       _hybrid = null;
       _status = null;
     });
+  }
+
+  Future<void> _openSource(Json citation) async {
+    final request = _reviewedInput;
+    if (request == null) return;
+    final Json source;
+    try {
+      source = await widget.api.read('evidence/source', {
+        'evidence_id': field(citation, 'evidence_id'),
+        'known_as_of': field(request, 'known_as_of'),
+      });
+    } on ServerError catch (error) {
+      if (error.status != 404) rethrow;
+      _status = '현재 권한으로 원문을 열 수 없습니다. 근거를 다시 확인하세요.';
+      return;
+    }
+    if ([
+      'evidence_id',
+      'source_version',
+      'checksum',
+    ].any((key) => field(source, key) != field(citation, key))) {
+      throw const FormatException('원문 버전 또는 해시가 달라졌습니다. 근거를 다시 확인하세요.');
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '${field(source, 'source_id')} v${field(source, 'source_version')}',
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 580, maxHeight: 400),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              '${field(source, 'locator')}\n\n${field(source, 'text')}',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
   }
 
   bool _sameRequest(Json left, Json right) =>
@@ -280,7 +367,7 @@ class _DraftRegistrationState extends State<DraftRegistration> {
     'inspection_first' => '현장 점검 우선',
     'manual_inspection' => '수동 점검',
     'stop_and_escalate' => '중지 후 담당자 확인',
-    _ => '서버가 확인한 조치 $action',
+    _ => '서버가 확인한 조치 ${action.replaceAll('_', ' ')}',
   };
 
   String get _condition => switch (field(_preview, 'state')) {
@@ -394,7 +481,30 @@ class _DraftRegistrationState extends State<DraftRegistration> {
                         ),
                       ),
                     ),
-                    if (_assets.contains('A-103'))
+                    if (_claims.isNotEmpty &&
+                        (_managedWorkspace || _claims.length > 1))
+                      SizedBox(
+                        width: 210,
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: '검토 항목'),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isDense: true,
+                              isExpanded: true,
+                              value: _claims.contains(_claim) ? _claim : null,
+                              items: [
+                                for (final claim in _claims)
+                                  DropdownMenuItem(
+                                    value: claim,
+                                    child: Text(_claimLabel(claim)),
+                                  ),
+                              ],
+                              onChanged: _busy ? null : _chooseClaim,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (!_managedWorkspace && _assets.contains('A-103'))
                       OutlinedButton(
                         onPressed: _busy ? null : () => _choose('A-103'),
                         child: const Text('A-103 예시 선택'),
@@ -411,9 +521,11 @@ class _DraftRegistrationState extends State<DraftRegistration> {
                       maxLength: 400,
                       onChanged: _queryChanged,
                       onSubmitted: (_) => _startHybrid(),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '근거를 찾을 질문',
-                        hintText: '필터를 교체하기 전에 무엇을 확인해야 하나요?',
+                        hintText: _managedWorkspace
+                            ? '이 상황에서 어떤 조치를 먼저 해야 하나요?'
+                            : '필터를 교체하기 전에 무엇을 확인해야 하나요?',
                         counterText: '',
                       ),
                     ),
@@ -433,7 +545,7 @@ class _DraftRegistrationState extends State<DraftRegistration> {
                         ),
                       ),
                     OutlinedButton(
-                      onPressed: _busy || _asset == null
+                      onPressed: _busy || _claim == null
                           ? null
                           : () => unawaited(_run(_checkEvidence)),
                       child: const Text('규칙으로 근거 확인'),
@@ -458,13 +570,29 @@ class _DraftRegistrationState extends State<DraftRegistration> {
                   const Divider(height: 26),
                   Text('규칙 판정', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 6),
-                  if (_supported) ...[
+                  if (_supported)
                     Text(_actionLabel(field(preview, 'recommended_action'))),
-                    for (final citation in objects(preview['citations']))
-                      Text(
-                        '${field(citation, 'source_id')} v${field(citation, 'source_version')}  ·  ${field(citation, 'locator')}',
-                        style: TextStyle(color: DeskColors.of(context).muted),
-                      ),
+                  if (!_supported) Text(_condition),
+                  for (final citation in objects(preview['citations']))
+                    Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          '${field(citation, 'source_id')} v${field(citation, 'source_version')}  ·  ${field(citation, 'locator')}',
+                          style: TextStyle(color: DeskColors.of(context).muted),
+                        ),
+                        OutlinedButton(
+                          onPressed: _busy
+                              ? null
+                              : () => unawaited(
+                                  _run(() => _openSource(citation)),
+                                ),
+                          child: const Text('원문 보기'),
+                        ),
+                      ],
+                    ),
+                  if (_supported) ...[
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -475,8 +603,7 @@ class _DraftRegistrationState extends State<DraftRegistration> {
                         child: const Text('승인 요청 보내기'),
                       ),
                     ),
-                  ] else
-                    Text(_condition),
+                  ],
                 ],
               ],
               if (_status != null) ...[

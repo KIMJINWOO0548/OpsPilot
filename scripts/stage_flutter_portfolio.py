@@ -1,4 +1,4 @@
-"""Stage a portable OpsPilot Flutter Windows demo from verified local inputs."""
+"""Stage a portable OpsPilot Flutter workspace from verified local inputs."""
 
 import argparse
 import hashlib
@@ -14,6 +14,8 @@ MODELS = {
     "llama-b12649-bin-win-cpu-x64.zip": "0e2ff97a5ef40de3e4ca910231676c044e0813c54727b2012022a2d2401e1fa9",
 }
 CRT_FILES = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+ENTRY_FILES = ("OpsPilot-X.cmd", "OpsPilot-Workspace.cmd", "launch_opspilot.py",
+               "README.ko.md", "evidence-template.json")
 
 
 def sha256(path: Path) -> str:
@@ -34,7 +36,7 @@ def stage(args):
         *(args.crt / name for name in CRT_FILES),
         backend / "python/python.exe",
         backend / "web/dist/index.html",
-        *(ROOT / "desktop/portfolio" / name for name in ("OpsPilot-X.cmd", "launch_opspilot.py", "README.ko.md")),
+        *(ROOT / "desktop/portfolio" / name for name in ENTRY_FILES),
         *(args.models / name for name in ("LICENSE-llama.cpp.txt", "LICENSE-Qwen-chat.txt", "LICENSE-Qwen-embed.txt")),
     ]
     for path in artifacts:
@@ -65,7 +67,7 @@ def stage(args):
     for name in ("LICENSE-llama.cpp.txt", "LICENSE-Qwen-chat.txt", "LICENSE-Qwen-embed.txt"):
         shutil.copy2(args.models / name, licenses)
     shutil.copy2(args.models / "MODEL-CARD-Qwen-embed.md", licenses)
-    for name in ("OpsPilot-X.cmd", "launch_opspilot.py", "README.ko.md"):
+    for name in ENTRY_FILES:
         shutil.copy2(ROOT / "desktop/portfolio" / name, destination)
     runtime = destination / "runtime"
     runtime.mkdir()
@@ -92,7 +94,7 @@ def stage(args):
     payload = sorted(path for path in destination.rglob("*") if path.is_file())
     (destination / "release-manifest.json").write_text(json.dumps({
         "target": "Windows x64",
-        "kind": "portable synthetic-data demo",
+        "kind": "portable local workspace and separately provisioned demo",
         "file_sha256": {path.relative_to(destination).as_posix(): sha256(path) for path in payload},
         "upstream_model_and_runtime_sha256": MODELS,
     }, indent=2) + "\n", encoding="utf-8")
