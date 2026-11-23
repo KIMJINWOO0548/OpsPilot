@@ -1,5 +1,7 @@
 # Evidence Integrity Engine — 계약 v0.1 (G3에서 강화)
 
+이 계약은 서버가 결정하는 권한·시점·충돌 규칙을 설명합니다. 현재 로컬 Hybrid RAG는 이 계약을 통과한 근거를 사용하며, 모델 호출과 인용 검증은 [ADR-006](../decisions/ADR-006-LOCAL-HYBRID-DRAFTS.md)에 정의합니다.
+
 ## 1. 입력
 - `Actor`: 서버 DB의 인증된 principal에서 생성한다. API JSON actor는 권한에 사용하지 않는다. 로컬 계정/세션 구현은 IdP/OIDC·기업 보안 인증을 의미하지 않는다.
 - `AnalyzeRequest`: `asset_id`, `claim_key`, `effective_at`, `known_as_of`, `actor`.
@@ -9,7 +11,7 @@
 ## 2. 권한·정보 흐름
 1. 서버 계정·만료되지 않은 opaque session을 확인한다. 변경 요청에는 CSRF를 검사한다.
 2. `tenant`, `team`, `role` 조건을 **retriever query 전** 적용; 접근 불가 레코드를 랭킹하거나 LLM 입력으로 전달하면 실패.
-3. API는 SQLite evidence/ACL의 bound SQL로 scope·관측 시점을 선필터한 후보를 EIE에 전달한다. 코어는 전달된 seed를 재검증하고 단위 smoke의 기본값은 합성 fixture다. PostgreSQL RLS·SQL agent·LLM은 미구현이다.
+3. API는 SQLite evidence/ACL의 bound SQL로 scope·관측 시점을 선필터한 후보를 EIE에 전달한다. 코어는 전달된 seed를 재검증하고 단위 smoke의 기본값은 합성 fixture다. 현재 저장소는 SQLite를 사용하며 정책 판정은 EIE가 결정한다.
 4. authorized + known(recorded_at <= known_as_of) + valid(effective_at 포함) 원칙.
 5. 이미 알고 있는 유효 후보만 대상으로 같은 asset/claim의 supersedes 관계를 해소한다. 검색 응답의 관계 ID도 접근 가능하고 관측된 동일 asset/claim에 한정한다. ACL 불가·미래 자료의 존재 여부를 결과에 누설하지 않는다.
 6. 같은 scope/시간에서 승인 SOP가 여러 다른 행동을 주장하고 우열 관계가 없으면 `CONFLICT`.

@@ -81,6 +81,7 @@ def test_generation_sends_bounded_structured_request_and_checks_finish(monkeypat
     def post(port, route, body):
         assert (port, route) == (7212, "/v1/chat/completions")
         assert body["stream"] is False
+        assert (body["temperature"], body["seed"], body["max_tokens"]) == (0, 42, 48)
         assert "tools" not in body
         schema = body["response_format"]["schema"]["properties"]
         assert schema == {"selection": {"type": "string", "enum": ["p1", "p2", "review"]}}

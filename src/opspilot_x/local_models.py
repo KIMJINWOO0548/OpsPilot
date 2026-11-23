@@ -25,6 +25,11 @@ _SYSTEM_MESSAGE = (
 )
 
 
+def draft_generation_parameters() -> dict[str, int]:
+    """Return the generation limits shared by model requests and evaluation reports."""
+    return {"temperature": 0, "seed": 42, "max_tokens": 48}
+
+
 def _interrupt(connection: socket.socket) -> None:
     try:
         connection.shutdown(socket.SHUT_RDWR)
@@ -154,9 +159,7 @@ class LocalModels:
                 }, ensure_ascii=False)},
             ],
             "response_format": {"type": "json_schema", "schema": schema},
-            "temperature": 0,
-            "seed": 42,
-            "max_tokens": 48,
+            **draft_generation_parameters(),
             "stream": False,
         })
         try:

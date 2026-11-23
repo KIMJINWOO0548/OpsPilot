@@ -52,15 +52,33 @@ Future<void> main(List<String> args) async {
       'after_known_as_of': DateTime.now().toUtc().toIso8601String(),
     });
     require(compare['changed'] is bool, 'Real comparison expected');
-    final source = await api.read('evidence', {
+    final bulk = await api.read('evidence', {
       'asset_id': 'A-103',
       'effective_at': field(context, 'effective_at'),
       'known_as_of': field(context, 'known_as_of'),
     });
+    final citation = objects(review['citations']).single;
+    final evidenceId = field(citation, 'evidence_id');
+    final candidates = objects(bulk['items']);
     require(
-      objects(source['items']).any((row) => field(row, 'text').isNotEmpty),
-      'Expected an authorized original quote',
+      candidates.length == 30 &&
+          candidates.every((row) => row['evidence_id'] != evidenceId),
+      'Seed must place the approval citation outside bulk search results',
     );
+    final source = await api.readCitedSource(
+      citation,
+      field(context, 'known_as_of'),
+    );
+    require(source['evidence_id'] == evidenceId, 'Expected the exact original');
+    try {
+      await api.readCitedSource({
+        ...citation,
+        'source_version': 'wrong-version',
+      }, field(context, 'known_as_of'));
+      throw StateError('Mismatched citation was accepted');
+    } on FormatException {
+      // A mismatched original cannot enable approval.
+    }
     await api.send('$path/decision', {
       'expected_hash': review['fingerprint'],
       'expected_version': review['review_version'],
@@ -72,6 +90,26 @@ Future<void> main(List<String> args) async {
     require(
       started['state'] == 'UNKNOWN_RECONCILE' && started['receipt_id'] == null,
       'Expected ambiguous original execution',
+    );
+    await api.send('auth/logout', {});
+    await api.login('qa-second', password);
+    final transferable = await api.read(path);
+    final guidance = jsonObject(transferable['guidance']);
+    require(
+      transferable['handover_allowed'] == true &&
+          (guidance['actions'] as List).contains('TAKE_HANDOVER'),
+      'Expected the server to allow a different reviewer to take handover',
+    );
+    const reason = 'Synthetic reviewer handover after response loss';
+    final handover = await api.send('$path/handover', {
+      'expected_hash': transferable['fingerprint'],
+      'expected_version': transferable['review_version'],
+      'reason': reason,
+    });
+    require(
+      handover['assigned_approver'] == 'qa-second' &&
+          handover['state'] == 'UNKNOWN_RECONCILE',
+      'Handover must preserve the unknown execution state',
     );
     final recovered = await api.send('$path/reconcile', {});
     final receipt = field(recovered, 'receipt_id');
@@ -97,20 +135,30 @@ Future<void> main(List<String> args) async {
       audit.where((row) => row['kind'] == 'RECONCILED').length == 1,
       'Expected exactly one reconciliation',
     );
+    require(
+      jsonObject(
+            audit.singleWhere((row) => row['kind'] == 'HANDOVER')['details'],
+          )['reason'] ==
+          reason,
+      'The handover reason was not audited',
+    );
     stdout.writeln(
       jsonEncode({
         'asset': 'A-103',
         'selected_id': selected,
         'author_rejected': true,
         'authorized_comparison': true,
+        'original_outside_bulk_results': true,
+        'mismatched_version_rejected': true,
         'approved': true,
         'ambiguous_response': true,
+        'handover_reason_audited': true,
         'same_receipt': true,
         'approved_original_preserved': true,
         'receipt': receipt,
       }),
     );
   } finally {
-    api.close();
+    await api.close();
   }
 }

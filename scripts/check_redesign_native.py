@@ -13,7 +13,7 @@ from urllib.request import urlopen
 
 from playwright.sync_api import expect, sync_playwright
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'competitive-opax'))
-from caption_checks import verify, taskbar
+from caption_checks import verify
 
 work = Path(__file__).resolve().parents[2]
 captions = True

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import shutil
 import sqlite3
 from contextlib import closing
 
@@ -9,7 +10,9 @@ import pytest
 from opspilot_x import auth
 from opspilot_x.api import create_app
 from opspilot_x.database_backup import backup_database
-from opspilot_x.workspace import initialize_workspace, import_workspace_evidence, restore_workspace
+from opspilot_x.workspace import (
+    DATABASE_NAME, MARKER, MARKER_NAME, import_workspace_evidence, initialize_workspace, restore_workspace,
+)
 
 
 def source(evidence_id, tenant="local-ops"):
@@ -71,6 +74,31 @@ def test_workspace_import_rejects_sources_the_reader_cannot_open(tmp_path):
         with pytest.raises(ValueError, match="position 2"):
             import_workspace_evidence(profile, manifest)
     assert stored_sources(db) == []
+
+
+@pytest.mark.parametrize("name", [DATABASE_NAME, "renamed.sqlite3"])
+def test_detached_managed_database_cannot_be_started_as_demo(tmp_path, name):
+    original = initialize_workspace(tmp_path / "workplace")
+    detached = tmp_path / name
+    shutil.copyfile(original, detached)
+    before = detached.read_bytes()
+
+    with pytest.raises(ValueError, match="workspace"):
+        create_app(detached)
+
+    assert detached.read_bytes() == before
+
+
+def test_workspace_marker_alone_cannot_turn_demo_db_into_workspace(tmp_path):
+    database = tmp_path / DATABASE_NAME
+    create_app(database)
+    (tmp_path / MARKER_NAME).write_bytes(MARKER)
+    before = database.read_bytes()
+
+    with pytest.raises(ValueError, match="workspace"):
+        create_app(database)
+
+    assert database.read_bytes() == before
 
 
 def test_restore_makes_a_separate_workspace_and_quarantines_accounts(tmp_path):
@@ -143,6 +171,17 @@ def test_workspace_catalog_and_original_require_current_scope(tmp_path):
             original = await client.get(source_path, params={"evidence_id": citation["evidence_id"], "known_as_of": cutoff})
             assert original.json() == {**citation, "text": source("ARCHIVE-03")["text"]}
             with auth.connection(db) as connection:
+                original_payload, = connection.execute(
+                    "SELECT payload FROM evidence_documents WHERE evidence_id='ARCHIVE-03'",
+                ).fetchone()
+                altered = dict(json.loads(original_payload), text="Synthetic corrupt source text.")
+                connection.execute("UPDATE evidence_documents SET payload=? WHERE evidence_id='ARCHIVE-03'",
+                                   (json.dumps(altered),))
+            response = await client.get(source_path, params={"evidence_id": "ARCHIVE-03"})
+            assert response.status_code == 404
+            with auth.connection(db) as connection:
+                connection.execute("UPDATE evidence_documents SET payload=? WHERE evidence_id='ARCHIVE-03'",
+                                   (original_payload,))
                 connection.execute("DELETE FROM evidence_acl WHERE evidence_id='ARCHIVE-03' AND role='engineer'")
             assert (await client.get(source_path, params={"evidence_id": "ARCHIVE-03"})).status_code == 404
 

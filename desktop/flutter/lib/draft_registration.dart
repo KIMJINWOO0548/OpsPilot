@@ -226,21 +226,14 @@ class _DraftRegistrationState extends State<DraftRegistration> {
     if (request == null) return;
     final Json source;
     try {
-      source = await widget.api.read('evidence/source', {
-        'evidence_id': field(citation, 'evidence_id'),
-        'known_as_of': field(request, 'known_as_of'),
-      });
+      source = await widget.api.readCitedSource(
+        citation,
+        field(request, 'known_as_of'),
+      );
     } on ServerError catch (error) {
       if (error.status != 404) rethrow;
       _status = '현재 권한으로 원문을 열 수 없습니다. 근거를 다시 확인하세요.';
       return;
-    }
-    if ([
-      'evidence_id',
-      'source_version',
-      'checksum',
-    ].any((key) => field(source, key) != field(citation, key))) {
-      throw const FormatException('원문 버전 또는 해시가 달라졌습니다. 근거를 다시 확인하세요.');
     }
     if (!mounted) return;
     await showDialog<void>(

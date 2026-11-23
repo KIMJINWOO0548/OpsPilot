@@ -1,5 +1,7 @@
 # 작업 명세 · 구현 순서 및 완료 기준
 
+2026-11-23 `main` 후보에서 Ruff 검사, Flutter 승인 원문·인계, 관리형 DB 초기화, 완료된 PDF·감사 자료 재열기, 임베딩 출처 계측 문제를 수정했다. Windows 배포 후보의 재시작 후 PDF 재저장과 합성 정책 40건을 검증했다. 공개 CI와 PDF 한글 조치·위치 표시를 다음 릴리스 검토에 남긴다. [검증 상태](GATE_STATUS.md)
+
 2026-11-23 관리형 Windows 로컬 후보에서 새 작업공간 등록, 정상 로그인·Windows 부팅 재시도, 긴 한국어 원문 인용, 독립 승인 PDF, 백업·복원 및 이전 계정 격리를 확인했다. 조직 네트워크·공용 인증 및 운영 부하의 수용은 별도 단계다. [운영 안내](../desktop/portfolio/README.ko.md).
 
 2026-11-23 포트폴리오 검증 순서. 로컬 Hybrid RAG와 Qwen → 합성 40건 비교 → 승인 PDF와 영수증 복구 → Flutter Windows 번들. 합성 자동 테스트와 90초 시연 데이터가 이번 산출물이다. 공식 연구와 조직 사용성 검증 상태는 아래 표를 참조한다. [ADR-006](decisions/ADR-006-LOCAL-HYBRID-DRAFTS.md) · [합성 평가](../evaluation/pilot40.ko.md).

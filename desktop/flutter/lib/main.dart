@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show FileSystemException, Platform;
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -307,29 +305,18 @@ class _ReviewDeskState extends State<ReviewDesk> {
           compare['changed'] is! bool) {
         throw const FormatException('동일한 업무 유효 시점을 비교하지 못했습니다.');
       }
-      final source = await _api!.read('evidence', {
-        'asset_id': asset,
-        'effective_at': fixed,
-        'known_as_of': pinnedKnown,
-      });
-      final pins = objects(detail['citations']);
-      bool matches(Json entry, Json citation) =>
-          field(entry, 'text').trim().isNotEmpty &&
-          sha256.convert(utf8.encode(field(entry, 'text'))).toString() ==
-              field(citation, 'checksum') &&
-          ['evidence_id', 'source_id', 'source_version', 'checksum'].every(
-            (key) =>
-                field(entry, key).isNotEmpty &&
-                field(entry, key) == field(citation, key),
-          );
-      final originals = objects(source['items']);
-      _evidence =
-          pins.every((pin) => originals.any((entry) => matches(entry, pin)))
-          ? originals
-                .where((entry) => pins.any((pin) => matches(entry, pin)))
-                .toList()
-          : [];
       _comparison = compare;
+      final originals = <Json>[];
+      try {
+        for (final citation in objects(detail['citations'])) {
+          originals.add(await _api!.readCitedSource(citation, pinnedKnown));
+        }
+      } on ServerError catch (error) {
+        if (error.status != 404) rethrow;
+        _status = '현재 권한으로 요청 당시 원문을 확인할 수 없습니다.';
+        return;
+      }
+      _evidence = originals;
     }
     _status = '서버에서 현재 요청 상태를 확인했습니다.';
   }
@@ -378,6 +365,14 @@ class _ReviewDeskState extends State<ReviewDesk> {
       _detail?['approval_valid'] == true &&
       _detail?['decided_by'] == _identity?['user_id'];
 
+  bool get _canHandover =>
+      !_busy &&
+      _identity?['role'] == 'approver' &&
+      _allows('TAKE_HANDOVER') &&
+      _detail?['handover_allowed'] == true &&
+      _detail?['review_version'] is int &&
+      RegExp(r'^[0-9a-f]{64}$').hasMatch(field(_detail, 'fingerprint'));
+
   Future<void> _write(String path, Json body) async {
     final id = _selectedId;
     if (id == null) return;
@@ -394,6 +389,73 @@ class _ReviewDeskState extends State<ReviewDesk> {
       'decision': 'approve',
     };
     unawaited(_run(() => _write('decision', body), isWrite: true));
+  }
+
+  Future<void> _takeHandover() async {
+    if (!_canHandover) return;
+    final selected = _selectedId;
+    final fingerprint = field(_detail, 'fingerprint');
+    final version = _detail?['review_version'];
+    final needsReceipt = _guidance?['reason'] == 'OUTCOME_UNKNOWN';
+    var reason = '';
+    final confirmed = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, updateDialog) => AlertDialog(
+          title: const Text('검토 담당 인계'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  needsReceipt
+                      ? '인계 후 기존 작업의 영수증을 확인할 수 있습니다.'
+                      : '인계 후 근거를 검토하고 다시 승인하세요.',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  autofocus: true,
+                  maxLength: 500,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: '인계 사유'),
+                  onChanged: (value) =>
+                      updateDialog(() => reason = value.trim()),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: reason.isEmpty || reason.runes.length > 500
+                  ? null
+                  : () => Navigator.pop(context, reason),
+              child: const Text('인계 확인'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted ||
+        confirmed == null ||
+        !_canHandover ||
+        _selectedId != selected) {
+      return;
+    }
+    await _run(() async {
+      await _write('handover', {
+        'expected_hash': fingerprint,
+        'expected_version': version,
+        'reason': confirmed,
+      });
+      _status = '검토 담당을 인계했습니다.';
+    }, isWrite: true);
   }
 
   void _createReport({bool simulateLoss = false}) {
@@ -1192,7 +1254,18 @@ class _ReviewDeskState extends State<ReviewDesk> {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    if (_state == 'PENDING_APPROVAL')
+                    if (_allows('TAKE_HANDOVER'))
+                      Semantics(
+                        identifier: 'review-handover',
+                        child: FilledButton(
+                          onPressed: _canHandover
+                              ? () => unawaited(_takeHandover())
+                              : null,
+                          child: const Text('검토 인계'),
+                        ),
+                      ),
+                    if (_state == 'PENDING_APPROVAL' &&
+                        !_allows('TAKE_HANDOVER'))
                       Semantics(
                         identifier: 'review-approve',
                         child: FilledButton(
@@ -1201,7 +1274,7 @@ class _ReviewDeskState extends State<ReviewDesk> {
                           child: const Text('요청 승인'),
                         ),
                       ),
-                    if (_state == 'APPROVED')
+                    if (_state == 'APPROVED' && !_allows('TAKE_HANDOVER'))
                       Semantics(
                         identifier: 'review-create-report',
                         child: FilledButton(
@@ -1209,7 +1282,7 @@ class _ReviewDeskState extends State<ReviewDesk> {
                           child: const Text('승인 PDF 생성'),
                         ),
                       ),
-                    if (_state == 'APPROVED')
+                    if (_state == 'APPROVED' && !_allows('TAKE_HANDOVER'))
                       OutlinedButton(
                         onPressed: _canExecute
                             ? () => _createReport(simulateLoss: true)
@@ -1283,8 +1356,12 @@ class _ReviewDeskState extends State<ReviewDesk> {
             (doc) =>
                 '${field(doc, 'source_id')} v${field(doc, 'source_version')}\n${field(doc, 'text')}',
           );
+          final reason = kind == 'HANDOVER' && item['details'] is Map
+              ? field(jsonObject(item['details']), 'reason')
+              : '';
           return [
             '$label  ${_time(field(item, 'logged_at'))}',
+            if (reason.isNotEmpty) '인계 사유: $reason',
             ...originals,
           ].join('\n');
         })
@@ -1292,6 +1369,7 @@ class _ReviewDeskState extends State<ReviewDesk> {
   });
 
   String _nextStepTitle() => switch (_state) {
+    _ when _allows('TAKE_HANDOVER') => '검토 담당 인계 필요',
     'PENDING_APPROVAL' when _canApprove => '근거 확인 후 요청 승인',
     'PENDING_APPROVAL' when _isAuthor => '검토자 승인 대기',
     'PENDING_APPROVAL' => '승인할 수 없음',
@@ -1304,6 +1382,11 @@ class _ReviewDeskState extends State<ReviewDesk> {
   String _decisionMessage() {
     if (_busy) return '현재 상태 확인 중입니다.';
     if (_canApprove) return '두 근거를 비교하세요. 승인하면 당시 근거 버전이 기록됩니다.';
+    if (_allows('TAKE_HANDOVER')) {
+      return _guidance?['reason'] == 'OUTCOME_UNKNOWN'
+          ? '검토를 인계받으면 기존 작업의 영수증을 확인할 수 있습니다.'
+          : '인계 사유를 남기고 근거를 검토할 담당자를 변경하세요.';
+    }
     return switch (_state) {
       'PENDING_APPROVAL' when _isAuthor =>
         '승인은 독립 검토자가 합니다. 이 화면에서 처리 상태를 확인하세요.',

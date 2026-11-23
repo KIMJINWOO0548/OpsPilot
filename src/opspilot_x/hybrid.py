@@ -164,9 +164,12 @@ class HybridRag:
         self,
         embed: Callable[[list[str]], list[list[float]]],
         generate: Callable[[str, list[ModelSource]], dict],
+        *,
+        observe_embedding: Callable[[tuple[str, ...]], None] | None = None,
     ):
         self.embed = embed
         self.generate = generate
+        self._observe_embedding = observe_embedding
 
     def analyze(
         self, request: AnalyzeRequest, candidates: list[Evidence], query: str
@@ -230,11 +233,16 @@ class HybridRag:
         tie_breakers = [tie_breakers[index] for index in order]
         lexical = [lexical[index] for index in order]
         search_instruction = "Instruct: Given a maintenance question, retrieve relevant policy evidence"
-        embedding_texts = [f"{search_instruction}\nQuery: {query}"] + [source["text"] for source in sources]
+        embedding_inputs: list[tuple[str, str | None]] = [
+            (f"{search_instruction}\nQuery: {query}", None)
+        ]
+        embedding_inputs.extend((source["text"], source["evidence_id"]) for source in sources)
         vectors = []
-        for start in range(0, len(embedding_texts), EMBEDDING_BATCH):
-            batch = embedding_texts[start:start + EMBEDDING_BATCH]
-            result = self.embed(batch)
+        for start in range(0, len(embedding_inputs), EMBEDDING_BATCH):
+            batch = embedding_inputs[start:start + EMBEDDING_BATCH]
+            if self._observe_embedding is not None:
+                self._observe_embedding(tuple(source_id for _, source_id in batch if source_id is not None))
+            result = self.embed([text for text, _ in batch])
             if not isinstance(result, list) or len(result) != len(batch):
                 raise ModelUnavailable("Unexpected embedding count")
             vectors.extend(result)

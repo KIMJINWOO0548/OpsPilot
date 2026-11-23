@@ -1,0 +1,2719 @@
+{
+  "dataset": "pilot40.json",
+  "dataset_sha256": "90c1671666565d07f5ceb1f8e787e50d92417827a012601325f8c33840c148e5",
+  "base_commit": "bc9c04c7e0189a9d411dd3e60113445eaadb7c94",
+  "code_sha256": {
+    "scripts/eval_pilot40.py": "83c4fccf669492e31f12fb8bf69e75bcec1e1bc4fe4ea9b0d7fbc2d9766829fb",
+    "src/opspilot_x/api.py": "b63ce7ecf26886c17b8294509b4378e3deed1ac9cbf8897dc5887d8100e471b1",
+    "src/opspilot_x/eie.py": "afc2d67e855e41adbda0924af390e419c98d29b5ad7d189c5c86a49ffd4085ca",
+    "src/opspilot_x/hybrid.py": "497ee7a4a73b62fd1e717ddbb8c74299f4116979408feee1309a0c5837f9eb97",
+    "src/opspilot_x/local_models.py": "ba2f96f2b0e075622e30f9db70ce821adf3a01eaf2bcb3f33d280f6642cfcd29"
+  },
+  "platform": "Windows-11-10.0.26200-SP0 / Intel64 Family 6 Model 140 Stepping 1, GenuineIntel",
+  "model_hashes": {
+    "llama-b12649-bin-win-cpu-x64.zip": "0e2ff97a5ef40de3e4ca910231676c044e0813c54727b2012022a2d2401e1fa9",
+    "qwen2.5-0.5b-instruct-q4_k_m.gguf": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "Qwen3-Embedding-0.6B-Q8_0.gguf": "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439"
+  },
+  "paid_api_calls": 0,
+  "decoded_token_counts_measured": false,
+  "case_count": 40,
+  "case_results": [
+    {
+      "case_id": "wireless-gateway/routine",
+      "source_family": "wireless-gateway",
+      "split": "development",
+      "stratum": "supported",
+      "query": "What should we check first when the wireless gateway reports duplicate address leases after roaming?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "wireless-gateway/policy-a",
+      "expected_action": "inspect_dhcp_lease_history",
+      "document_hashes": {
+        "wireless-gateway/policy-a": "789ac8af16e0bade59692bdac3aafea5b452065a5f4feae8497a39e17adf462f",
+        "wireless-gateway/note": "9cabb7756ccf5a2cc2e93cb5ca204dacfbe5375634b8ceed2f2ef45c9368336d"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_dhcp_lease_history",
+        "context_ids": [
+          "wireless-gateway/note",
+          "wireless-gateway/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 240.04,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_dhcp_lease_history",
+        "context_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "embedding_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "citation_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1316.33,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "wireless-gateway/before-correction",
+      "source_family": "wireless-gateway",
+      "split": "development",
+      "stratum": "retroactive",
+      "query": "What should we check first when the wireless gateway reports duplicate address leases after roaming?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-14T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "wireless-gateway/policy-a",
+      "expected_action": "inspect_dhcp_lease_history",
+      "document_hashes": {
+        "wireless-gateway/policy-a": "789ac8af16e0bade59692bdac3aafea5b452065a5f4feae8497a39e17adf462f",
+        "wireless-gateway/retro-b": "5f246e5187c38f218a09d6336fa39ce1b6fe7e5b5c14e663c36c36bc5ed198a6",
+        "wireless-gateway/note": "9cabb7756ccf5a2cc2e93cb5ca204dacfbe5375634b8ceed2f2ef45c9368336d"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_dhcp_lease_history",
+        "context_ids": [
+          "wireless-gateway/note",
+          "wireless-gateway/policy-a",
+          "wireless-gateway/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 649.61,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_dhcp_lease_history",
+        "context_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "embedding_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "citation_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 987.48,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "wireless-gateway/after-correction",
+      "source_family": "wireless-gateway",
+      "split": "development",
+      "stratum": "retroactive",
+      "query": "What should we check first when the wireless gateway reports duplicate address leases after roaming?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "wireless-gateway/retro-b",
+      "expected_action": "compare_gateway_reservation_map",
+      "document_hashes": {
+        "wireless-gateway/policy-a": "789ac8af16e0bade59692bdac3aafea5b452065a5f4feae8497a39e17adf462f",
+        "wireless-gateway/retro-b": "5f246e5187c38f218a09d6336fa39ce1b6fe7e5b5c14e663c36c36bc5ed198a6",
+        "wireless-gateway/note": "9cabb7756ccf5a2cc2e93cb5ca204dacfbe5375634b8ceed2f2ef45c9368336d"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_dhcp_lease_history",
+        "context_ids": [
+          "wireless-gateway/note",
+          "wireless-gateway/policy-a",
+          "wireless-gateway/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 589.29,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": true,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_gateway_reservation_map",
+        "context_ids": [
+          "wireless-gateway/retro-b"
+        ],
+        "embedding_ids": [
+          "wireless-gateway/retro-b"
+        ],
+        "citation_ids": [
+          "wireless-gateway/retro-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1056.5,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "wireless-gateway/aligned-authority",
+      "source_family": "wireless-gateway",
+      "split": "development",
+      "stratum": "conflict",
+      "query": "What should we check first when the wireless gateway reports duplicate address leases after roaming?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "wireless-gateway/policy-a": "789ac8af16e0bade59692bdac3aafea5b452065a5f4feae8497a39e17adf462f",
+        "wireless-gateway/conflict-b": "5f246e5187c38f218a09d6336fa39ce1b6fe7e5b5c14e663c36c36bc5ed198a6",
+        "wireless-gateway/note": "9cabb7756ccf5a2cc2e93cb5ca204dacfbe5375634b8ceed2f2ef45c9368336d"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_gateway_reservation_map",
+        "context_ids": [
+          "wireless-gateway/conflict-b",
+          "wireless-gateway/note",
+          "wireless-gateway/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "wireless-gateway/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 554.59,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "wireless-gateway/conflict-b",
+          "wireless-gateway/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 6.3,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "artifact-mirror/routine",
+      "source_family": "artifact-mirror",
+      "split": "development",
+      "stratum": "supported",
+      "query": "What should we check first when the artifact mirror serves a build with an unexpected checksum?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "artifact-mirror/policy-a",
+      "expected_action": "validate_build_provenance",
+      "document_hashes": {
+        "artifact-mirror/policy-a": "a6c94fc907dc5e360229c7e8cb2adcf26bc67b9ef3170a06d29576a97974a9af",
+        "artifact-mirror/note": "5ecad7f2dc4b823194f74b2acb13f4bd72c4af83f26bc4ed911df4ab09f9ef4b"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/note",
+          "artifact-mirror/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 384.38,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "embedding_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "citation_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1609.7,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "artifact-mirror/before-cutover",
+      "source_family": "artifact-mirror",
+      "split": "development",
+      "stratum": "effective-time",
+      "query": "What should we check first when the artifact mirror serves a build with an unexpected checksum?",
+      "effective_at": "2026-10-11T12:00:00+00:00",
+      "known_as_of": "2026-10-18T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "artifact-mirror/expiring-a",
+      "expected_action": "validate_build_provenance",
+      "document_hashes": {
+        "artifact-mirror/expiring-a": "a6c94fc907dc5e360229c7e8cb2adcf26bc67b9ef3170a06d29576a97974a9af",
+        "artifact-mirror/upcoming-b": "b21933c03b001ad199223f8d0a60ed287c307cd93fff303c8d4ca445daf34bac",
+        "artifact-mirror/note": "5ecad7f2dc4b823194f74b2acb13f4bd72c4af83f26bc4ed911df4ab09f9ef4b"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/expiring-a",
+          "artifact-mirror/note",
+          "artifact-mirror/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "artifact-mirror/expiring-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 552.73,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/expiring-a"
+        ],
+        "embedding_ids": [
+          "artifact-mirror/expiring-a"
+        ],
+        "citation_ids": [
+          "artifact-mirror/expiring-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 759.37,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "artifact-mirror/cutover-boundary",
+      "source_family": "artifact-mirror",
+      "split": "development",
+      "stratum": "effective-time",
+      "query": "What should we check first when the artifact mirror serves a build with an unexpected checksum?",
+      "effective_at": "2026-10-12T12:00:00+00:00",
+      "known_as_of": "2026-10-18T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "artifact-mirror/upcoming-b",
+      "expected_action": "compare_signed_release_manifest",
+      "document_hashes": {
+        "artifact-mirror/expiring-a": "a6c94fc907dc5e360229c7e8cb2adcf26bc67b9ef3170a06d29576a97974a9af",
+        "artifact-mirror/upcoming-b": "b21933c03b001ad199223f8d0a60ed287c307cd93fff303c8d4ca445daf34bac",
+        "artifact-mirror/note": "5ecad7f2dc4b823194f74b2acb13f4bd72c4af83f26bc4ed911df4ab09f9ef4b"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/expiring-a",
+          "artifact-mirror/note",
+          "artifact-mirror/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "artifact-mirror/expiring-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 595.3,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": true,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_signed_release_manifest",
+        "context_ids": [
+          "artifact-mirror/upcoming-b"
+        ],
+        "embedding_ids": [
+          "artifact-mirror/upcoming-b"
+        ],
+        "citation_ids": [
+          "artifact-mirror/upcoming-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 746.44,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "artifact-mirror/another-team",
+      "source_family": "artifact-mirror",
+      "split": "development",
+      "stratum": "acl",
+      "query": "What should we check first when the artifact mirror serves a build with an unexpected checksum?",
+      "effective_at": "2026-10-16T12:00:00+00:00",
+      "known_as_of": "2026-10-18T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "artifact-mirror/policy-a",
+      "expected_action": "validate_build_provenance",
+      "document_hashes": {
+        "artifact-mirror/policy-a": "a6c94fc907dc5e360229c7e8cb2adcf26bc67b9ef3170a06d29576a97974a9af",
+        "artifact-mirror/foreign-team": "dff62c7fac27efca26ceeede213e2330a72ee757c8d2bb6589240cfb5e8ecde9",
+        "artifact-mirror/note": "5ecad7f2dc4b823194f74b2acb13f4bd72c4af83f26bc4ed911df4ab09f9ef4b"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_signed_release_manifest",
+        "context_ids": [
+          "artifact-mirror/foreign-team",
+          "artifact-mirror/note",
+          "artifact-mirror/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "artifact-mirror/foreign-team"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 840.49,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "validate_build_provenance",
+        "context_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "embedding_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "citation_ids": [
+          "artifact-mirror/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 872.38,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "service-desk-ingest/routine",
+      "source_family": "service-desk-ingest",
+      "split": "development",
+      "stratum": "supported",
+      "query": "What should we check first when the service desk ingestion retries the same support envelope continuously?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "service-desk-ingest/policy-a",
+      "expected_action": "trace_envelope_deduplication",
+      "document_hashes": {
+        "service-desk-ingest/policy-a": "fb2cc23efd28c27f27d96cb6d0bae09805f0a95d75186db92a0f37b7a8ccdc0d",
+        "service-desk-ingest/note": "492ffc6267a5a589f67ec1e694c7fd6475a14b45c677cf028a3d5488702a95c0"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "trace_envelope_deduplication",
+        "context_ids": [
+          "service-desk-ingest/note",
+          "service-desk-ingest/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 229.81,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "trace_envelope_deduplication",
+        "context_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "embedding_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "citation_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 947.64,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "service-desk-ingest/published-correction",
+      "source_family": "service-desk-ingest",
+      "split": "development",
+      "stratum": "retroactive",
+      "query": "What should we check first when the service desk ingestion retries the same support envelope continuously?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "service-desk-ingest/retro-b",
+      "expected_action": "check_retry_ledger",
+      "document_hashes": {
+        "service-desk-ingest/policy-a": "fb2cc23efd28c27f27d96cb6d0bae09805f0a95d75186db92a0f37b7a8ccdc0d",
+        "service-desk-ingest/retro-b": "403a5cd0b51120ec2c8cf5d9164329e323de93201280af54b02a1437037e06d2",
+        "service-desk-ingest/note": "492ffc6267a5a589f67ec1e694c7fd6475a14b45c677cf028a3d5488702a95c0"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "check_retry_ledger",
+        "context_ids": [
+          "service-desk-ingest/note",
+          "service-desk-ingest/policy-a",
+          "service-desk-ingest/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "service-desk-ingest/retro-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 506.41,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "check_retry_ledger",
+        "context_ids": [
+          "service-desk-ingest/retro-b"
+        ],
+        "embedding_ids": [
+          "service-desk-ingest/retro-b"
+        ],
+        "citation_ids": [
+          "service-desk-ingest/retro-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 865.35,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "service-desk-ingest/incident-only",
+      "source_family": "service-desk-ingest",
+      "split": "development",
+      "stratum": "insufficient",
+      "query": "What should we check first when the service desk ingestion retries the same support envelope continuously?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "service-desk-ingest/note": "492ffc6267a5a589f67ec1e694c7fd6475a14b45c677cf028a3d5488702a95c0"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "NO_ACTION",
+        "action": null,
+        "context_ids": [
+          "service-desk-ingest/note"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 0.04,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 6.39,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "service-desk-ingest/approver-only-policy",
+      "source_family": "service-desk-ingest",
+      "split": "development",
+      "stratum": "acl",
+      "query": "What should we check first when the service desk ingestion retries the same support envelope continuously?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "service-desk-ingest/policy-a",
+      "expected_action": "trace_envelope_deduplication",
+      "document_hashes": {
+        "service-desk-ingest/policy-a": "fb2cc23efd28c27f27d96cb6d0bae09805f0a95d75186db92a0f37b7a8ccdc0d",
+        "service-desk-ingest/restricted-role": "c8dd83a7638815d17e1cce35e3b8dd031c083365e51761a32c743a46ca99d767",
+        "service-desk-ingest/note": "492ffc6267a5a589f67ec1e694c7fd6475a14b45c677cf028a3d5488702a95c0"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "check_retry_ledger",
+        "context_ids": [
+          "service-desk-ingest/note",
+          "service-desk-ingest/policy-a",
+          "service-desk-ingest/restricted-role"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "service-desk-ingest/restricted-role"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 635.19,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "trace_envelope_deduplication",
+        "context_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "embedding_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "citation_ids": [
+          "service-desk-ingest/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 926.66,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "batch-broker/routine",
+      "source_family": "batch-broker",
+      "split": "development",
+      "stratum": "supported",
+      "query": "What should we check first when the batch worker broker shows a growing queue of accepted jobs?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "batch-broker/policy-a",
+      "expected_action": "inspect_consumer_checkpoints",
+      "document_hashes": {
+        "batch-broker/policy-a": "3d50128ad945ba46916d0ad4a78cb314d41d1bba2c1e7bab1821ad130dcb2472",
+        "batch-broker/note": "b514d947c3dcfdbcda224c145a3b65244e24f26f7a3b1d2171e5381c73b46036"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_consumer_checkpoints",
+        "context_ids": [
+          "batch-broker/note",
+          "batch-broker/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "batch-broker/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 457.69,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_consumer_checkpoints",
+        "context_ids": [
+          "batch-broker/policy-a"
+        ],
+        "embedding_ids": [
+          "batch-broker/policy-a"
+        ],
+        "citation_ids": [
+          "batch-broker/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 930.19,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "batch-broker/expired-playbook",
+      "source_family": "batch-broker",
+      "split": "development",
+      "stratum": "effective-time",
+      "query": "What should we check first when the batch worker broker shows a growing queue of accepted jobs?",
+      "effective_at": "2026-10-12T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "STALE",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "batch-broker/expiring-a": "3d50128ad945ba46916d0ad4a78cb314d41d1bba2c1e7bab1821ad130dcb2472"
+      },
+      "existing_policy_state": "STALE",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_consumer_checkpoints",
+        "context_ids": [
+          "batch-broker/expiring-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "batch-broker/expiring-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 435.37,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": true,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "STALE",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 7.84,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "batch-broker/tenant-isolation",
+      "source_family": "batch-broker",
+      "split": "development",
+      "stratum": "acl",
+      "query": "What should we check first when the batch worker broker shows a growing queue of accepted jobs?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "batch-broker/policy-a",
+      "expected_action": "inspect_consumer_checkpoints",
+      "document_hashes": {
+        "batch-broker/policy-a": "3d50128ad945ba46916d0ad4a78cb314d41d1bba2c1e7bab1821ad130dcb2472",
+        "batch-broker/foreign-tenant": "8c15d5cd521a4e03ebbfcd34f22d231aeced803dde914954e6f2ce88a8230a8e",
+        "batch-broker/note": "b514d947c3dcfdbcda224c145a3b65244e24f26f7a3b1d2171e5381c73b46036"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_consumer_checkpoints",
+        "context_ids": [
+          "batch-broker/foreign-tenant",
+          "batch-broker/note",
+          "batch-broker/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "batch-broker/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 713.28,
+        "acl_model_exposure": true,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_consumer_checkpoints",
+        "context_ids": [
+          "batch-broker/policy-a"
+        ],
+        "embedding_ids": [
+          "batch-broker/policy-a"
+        ],
+        "citation_ids": [
+          "batch-broker/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 891.03,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "batch-broker/two-valid-playbooks",
+      "source_family": "batch-broker",
+      "split": "development",
+      "stratum": "conflict",
+      "query": "What should we check first when the batch worker broker shows a growing queue of accepted jobs?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "batch-broker/policy-a": "3d50128ad945ba46916d0ad4a78cb314d41d1bba2c1e7bab1821ad130dcb2472",
+        "batch-broker/conflict-b": "998a4dbba25802f10e87c71ffe5c251cd21bd6d7dd46cd71f68324ca9bdd733a"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "verify_dispatch_watermark",
+        "context_ids": [
+          "batch-broker/conflict-b",
+          "batch-broker/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "batch-broker/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 705.35,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "batch-broker/conflict-b",
+          "batch-broker/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 9.34,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "certificate-monitor/routine",
+      "source_family": "certificate-monitor",
+      "split": "development",
+      "stratum": "supported",
+      "query": "What should we check first when the certificate monitor signals a renewal while the endpoint still reports the current chain?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "certificate-monitor/policy-a",
+      "expected_action": "inspect_probe_certificate_chain",
+      "document_hashes": {
+        "certificate-monitor/policy-a": "2a981da87259bc6c23043d6cc8a96d28064af1db0412c8188e252cab5b80515b",
+        "certificate-monitor/note": "0b8b41edc6149e169c7ca073a61042bb6619a9090d4e27194ae354ce7d9ff2ec"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_probe_certificate_chain",
+        "context_ids": [
+          "certificate-monitor/note",
+          "certificate-monitor/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "certificate-monitor/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 233.74,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_probe_certificate_chain",
+        "context_ids": [
+          "certificate-monitor/policy-a"
+        ],
+        "embedding_ids": [
+          "certificate-monitor/policy-a"
+        ],
+        "citation_ids": [
+          "certificate-monitor/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1111.83,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "certificate-monitor/future-only",
+      "source_family": "certificate-monitor",
+      "split": "development",
+      "stratum": "effective-time",
+      "query": "What should we check first when the certificate monitor signals a renewal while the endpoint still reports the current chain?",
+      "effective_at": "2026-10-11T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "certificate-monitor/upcoming-b": "840f10ebde2ea2bf16adc0c873704842c9e0313c83ddb1d1264fb9462a73e048"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_renewal_inventory",
+        "context_ids": [
+          "certificate-monitor/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "certificate-monitor/upcoming-b"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 306.97,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": true,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 8.96,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "certificate-monitor/restricted-only",
+      "source_family": "certificate-monitor",
+      "split": "development",
+      "stratum": "acl",
+      "query": "What should we check first when the certificate monitor signals a renewal while the endpoint still reports the current chain?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "certificate-monitor/restricted-role": "8aa1945eab35ccffe6114c2dcda1eae58a2b694ac8ef451d01c32232038771b0",
+        "certificate-monitor/note": "0b8b41edc6149e169c7ca073a61042bb6619a9090d4e27194ae354ce7d9ff2ec"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_renewal_inventory",
+        "context_ids": [
+          "certificate-monitor/note",
+          "certificate-monitor/restricted-role"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "certificate-monitor/restricted-role"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 446.43,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 6.74,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "certificate-monitor/contradictory-steps",
+      "source_family": "certificate-monitor",
+      "split": "development",
+      "stratum": "conflict",
+      "query": "What should we check first when the certificate monitor signals a renewal while the endpoint still reports the current chain?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "certificate-monitor/policy-a": "2a981da87259bc6c23043d6cc8a96d28064af1db0412c8188e252cab5b80515b",
+        "certificate-monitor/conflict-b": "840f10ebde2ea2bf16adc0c873704842c9e0313c83ddb1d1264fb9462a73e048"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_renewal_inventory",
+        "context_ids": [
+          "certificate-monitor/conflict-b",
+          "certificate-monitor/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "certificate-monitor/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 668.01,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "certificate-monitor/conflict-b",
+          "certificate-monitor/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 8.82,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "log-relay/handover-day",
+      "source_family": "log-relay",
+      "split": "development",
+      "stratum": "effective-time",
+      "query": "What should we check first when the log relay queue reports delayed forwarding but uplink remains healthy?",
+      "effective_at": "2026-10-12T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "log-relay/upcoming-b",
+      "expected_action": "check_forwarder_batch_sequence",
+      "document_hashes": {
+        "log-relay/expiring-a": "e294f056b1b2e3c5a243505d7ba6752b0a9dc37c0154cac583b35404b97a317e",
+        "log-relay/upcoming-b": "5a351cce02ff289c23b1bba66565052094dbb6f9525c439fadc45729fc62b579",
+        "log-relay/note": "4d928a773cbe174e61f6b88b48c933c2c62380a49735f3aa501d127e88a86d95"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "check_forwarder_batch_sequence",
+        "context_ids": [
+          "log-relay/expiring-a",
+          "log-relay/note",
+          "log-relay/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "log-relay/upcoming-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 672.3,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "check_forwarder_batch_sequence",
+        "context_ids": [
+          "log-relay/upcoming-b"
+        ],
+        "embedding_ids": [
+          "log-relay/upcoming-b"
+        ],
+        "citation_ids": [
+          "log-relay/upcoming-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 907.97,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "log-relay/private-yard",
+      "source_family": "log-relay",
+      "split": "development",
+      "stratum": "acl",
+      "query": "What should we check first when the log relay queue reports delayed forwarding but uplink remains healthy?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "log-relay/foreign-team": "6847e5d284dfd38057f867dc0cf7d166a37d45001acc43e6a2cf2f2a3923711b",
+        "log-relay/foreign-tenant": "45b0e51fa506e50c55519d78bffbebe8d2def46b860835e94091c2e344aa8c81"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "check_forwarder_batch_sequence",
+        "context_ids": [
+          "log-relay/foreign-team",
+          "log-relay/foreign-tenant"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "log-relay/foreign-team",
+          "log-relay/foreign-tenant"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 598.11,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 7.02,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "log-relay/no-source",
+      "source_family": "log-relay",
+      "split": "development",
+      "stratum": "insufficient",
+      "query": "What should we check first when the log relay queue reports delayed forwarding but uplink remains healthy?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {},
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "NO_ACTION",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 0.02,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 6.7,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "log-relay/unapproved-operations-note",
+      "source_family": "log-relay",
+      "split": "development",
+      "stratum": "insufficient",
+      "query": "What should we check first when the log relay queue reports delayed forwarding but uplink remains healthy?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "log-relay/note": "4d928a773cbe174e61f6b88b48c933c2c62380a49735f3aa501d127e88a86d95"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "NO_ACTION",
+        "action": null,
+        "context_ids": [
+          "log-relay/note"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 0.07,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 10.5,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "identity-reconciler/routine",
+      "source_family": "identity-reconciler",
+      "split": "holdout",
+      "stratum": "supported",
+      "query": "What should we check first when the identity reconciler shows stale directory membership after a sync?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "identity-reconciler/policy-a",
+      "expected_action": "compare_directory_sync_cursor",
+      "document_hashes": {
+        "identity-reconciler/policy-a": "579812f27978da0999d9c8135dd14cd3ec4394c4a36ca73d376406da2b00c8f8",
+        "identity-reconciler/note": "f0d61f5a294d7232468af1106430edea5c869d6d005d393a2918dd6c8d737040"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_directory_sync_cursor",
+        "context_ids": [
+          "identity-reconciler/note",
+          "identity-reconciler/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 282.48,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_directory_sync_cursor",
+        "context_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "embedding_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "citation_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 939.41,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "identity-reconciler/later-correction-hidden",
+      "source_family": "identity-reconciler",
+      "split": "holdout",
+      "stratum": "retroactive",
+      "query": "What should we check first when the identity reconciler shows stale directory membership after a sync?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-14T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "identity-reconciler/policy-a",
+      "expected_action": "compare_directory_sync_cursor",
+      "document_hashes": {
+        "identity-reconciler/policy-a": "579812f27978da0999d9c8135dd14cd3ec4394c4a36ca73d376406da2b00c8f8",
+        "identity-reconciler/retro-b": "6b5544c347f9270aa603e1808928fa699e090ae4db264f34bc93b51b27a0827e"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_directory_sync_cursor",
+        "context_ids": [
+          "identity-reconciler/policy-a",
+          "identity-reconciler/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 656.34,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_directory_sync_cursor",
+        "context_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "embedding_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "citation_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 866.77,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "identity-reconciler/later-correction-known",
+      "source_family": "identity-reconciler",
+      "split": "holdout",
+      "stratum": "retroactive",
+      "query": "What should we check first when the identity reconciler shows stale directory membership after a sync?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "identity-reconciler/retro-b",
+      "expected_action": "inspect_membership_event_ledger",
+      "document_hashes": {
+        "identity-reconciler/policy-a": "579812f27978da0999d9c8135dd14cd3ec4394c4a36ca73d376406da2b00c8f8",
+        "identity-reconciler/retro-b": "6b5544c347f9270aa603e1808928fa699e090ae4db264f34bc93b51b27a0827e"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_directory_sync_cursor",
+        "context_ids": [
+          "identity-reconciler/policy-a",
+          "identity-reconciler/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 562.12,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": true,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_membership_event_ledger",
+        "context_ids": [
+          "identity-reconciler/retro-b"
+        ],
+        "embedding_ids": [
+          "identity-reconciler/retro-b"
+        ],
+        "citation_ids": [
+          "identity-reconciler/retro-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 721.76,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "identity-reconciler/peer-approvals-disagree",
+      "source_family": "identity-reconciler",
+      "split": "holdout",
+      "stratum": "conflict",
+      "query": "What should we check first when the identity reconciler shows stale directory membership after a sync?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "identity-reconciler/policy-a": "579812f27978da0999d9c8135dd14cd3ec4394c4a36ca73d376406da2b00c8f8",
+        "identity-reconciler/conflict-b": "6b5544c347f9270aa603e1808928fa699e090ae4db264f34bc93b51b27a0827e"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_membership_event_ledger",
+        "context_ids": [
+          "identity-reconciler/conflict-b",
+          "identity-reconciler/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "identity-reconciler/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 552.37,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "identity-reconciler/conflict-b",
+          "identity-reconciler/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 12.06,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "snapshot-index/routine",
+      "source_family": "snapshot-index",
+      "split": "holdout",
+      "stratum": "supported",
+      "query": "What should we check first when the snapshot index omits the latest scheduled storage backup?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "snapshot-index/policy-a",
+      "expected_action": "review_backup_catalog_digest",
+      "document_hashes": {
+        "snapshot-index/policy-a": "ec673cb0d3adc248b1dd7565d09f2c261c307c45848c907b50a5ff668b03c20b",
+        "snapshot-index/note": "82ee3d27cd3551ed96947455884c1321670250db2d8accfc2b026e691507fa86"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "review_backup_catalog_digest",
+        "context_ids": [
+          "snapshot-index/note",
+          "snapshot-index/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "snapshot-index/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 226.21,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "review_backup_catalog_digest",
+        "context_ids": [
+          "snapshot-index/policy-a"
+        ],
+        "embedding_ids": [
+          "snapshot-index/policy-a"
+        ],
+        "citation_ids": [
+          "snapshot-index/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 879.64,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "snapshot-index/day-before",
+      "source_family": "snapshot-index",
+      "split": "holdout",
+      "stratum": "effective-time",
+      "query": "What should we check first when the snapshot index omits the latest scheduled storage backup?",
+      "effective_at": "2026-10-11T12:00:00+00:00",
+      "known_as_of": "2026-10-18T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "snapshot-index/expiring-a",
+      "expected_action": "review_backup_catalog_digest",
+      "document_hashes": {
+        "snapshot-index/expiring-a": "ec673cb0d3adc248b1dd7565d09f2c261c307c45848c907b50a5ff668b03c20b",
+        "snapshot-index/upcoming-b": "fb858063d5f026fb7b44b8c9cf2f8c5d737c91cb519aaf218052693081cba041"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "review_backup_catalog_digest",
+        "context_ids": [
+          "snapshot-index/expiring-a",
+          "snapshot-index/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "snapshot-index/expiring-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1398.59,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "review_backup_catalog_digest",
+        "context_ids": [
+          "snapshot-index/expiring-a"
+        ],
+        "embedding_ids": [
+          "snapshot-index/expiring-a"
+        ],
+        "citation_ids": [
+          "snapshot-index/expiring-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 868.49,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "snapshot-index/first-day",
+      "source_family": "snapshot-index",
+      "split": "holdout",
+      "stratum": "effective-time",
+      "query": "What should we check first when the snapshot index omits the latest scheduled storage backup?",
+      "effective_at": "2026-10-12T12:00:00+00:00",
+      "known_as_of": "2026-10-18T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "snapshot-index/upcoming-b",
+      "expected_action": "compare_snapshot_job_record",
+      "document_hashes": {
+        "snapshot-index/expiring-a": "ec673cb0d3adc248b1dd7565d09f2c261c307c45848c907b50a5ff668b03c20b",
+        "snapshot-index/upcoming-b": "fb858063d5f026fb7b44b8c9cf2f8c5d737c91cb519aaf218052693081cba041"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "review_backup_catalog_digest",
+        "context_ids": [
+          "snapshot-index/expiring-a",
+          "snapshot-index/upcoming-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "snapshot-index/expiring-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 846.82,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": true,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_snapshot_job_record",
+        "context_ids": [
+          "snapshot-index/upcoming-b"
+        ],
+        "embedding_ids": [
+          "snapshot-index/upcoming-b"
+        ],
+        "citation_ids": [
+          "snapshot-index/upcoming-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1636.44,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "snapshot-index/backup-team-only",
+      "source_family": "snapshot-index",
+      "split": "holdout",
+      "stratum": "acl",
+      "query": "What should we check first when the snapshot index omits the latest scheduled storage backup?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "snapshot-index/foreign-team": "a28f32ed6c9d61f54754a6fd29cc35a99c895da02c9cebfa65f0a7165fbe9962",
+        "snapshot-index/note": "82ee3d27cd3551ed96947455884c1321670250db2d8accfc2b026e691507fa86"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_snapshot_job_record",
+        "context_ids": [
+          "snapshot-index/foreign-team",
+          "snapshot-index/note"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "snapshot-index/foreign-team"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 551.24,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 6.93,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "telemetry-ingress/routine",
+      "source_family": "telemetry-ingress",
+      "split": "holdout",
+      "stratum": "supported",
+      "query": "What should we check first when the telemetry ingress shows accepted events without corresponding sample counts?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-10T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "telemetry-ingress/policy-a",
+      "expected_action": "compare_ingress_batch_ids",
+      "document_hashes": {
+        "telemetry-ingress/policy-a": "d0ff454e3eadb887b418d254754e3807dadee120289e2fe8478ad7278eff9ecb",
+        "telemetry-ingress/note": "fa806e4de890daac5fe411bcf284f25b361d9510c13111f8999edf8822ade7b1"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_ingress_batch_ids",
+        "context_ids": [
+          "telemetry-ingress/note",
+          "telemetry-ingress/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 307.42,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_ingress_batch_ids",
+        "context_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "embedding_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "citation_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1087.89,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "telemetry-ingress/retroactively-superseded",
+      "source_family": "telemetry-ingress",
+      "split": "holdout",
+      "stratum": "retroactive",
+      "query": "What should we check first when the telemetry ingress shows accepted events without corresponding sample counts?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "telemetry-ingress/retro-b",
+      "expected_action": "inspect_sampling_job_summary",
+      "document_hashes": {
+        "telemetry-ingress/policy-a": "d0ff454e3eadb887b418d254754e3807dadee120289e2fe8478ad7278eff9ecb",
+        "telemetry-ingress/retro-b": "797269f2b31fdfe8eff5be9dea0ac7aa44ccc3ea852578244365346a998900ed",
+        "telemetry-ingress/note": "fa806e4de890daac5fe411bcf284f25b361d9510c13111f8999edf8822ade7b1"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_ingress_batch_ids",
+        "context_ids": [
+          "telemetry-ingress/note",
+          "telemetry-ingress/policy-a",
+          "telemetry-ingress/retro-b"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 869.48,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": true,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "inspect_sampling_job_summary",
+        "context_ids": [
+          "telemetry-ingress/retro-b"
+        ],
+        "embedding_ids": [
+          "telemetry-ingress/retro-b"
+        ],
+        "citation_ids": [
+          "telemetry-ingress/retro-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 1192.7,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "telemetry-ingress/conflicting-authorities",
+      "source_family": "telemetry-ingress",
+      "split": "holdout",
+      "stratum": "conflict",
+      "query": "What should we check first when the telemetry ingress shows accepted events without corresponding sample counts?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "telemetry-ingress/policy-a": "d0ff454e3eadb887b418d254754e3807dadee120289e2fe8478ad7278eff9ecb",
+        "telemetry-ingress/conflict-b": "797269f2b31fdfe8eff5be9dea0ac7aa44ccc3ea852578244365346a998900ed",
+        "telemetry-ingress/note": "fa806e4de890daac5fe411bcf284f25b361d9510c13111f8999edf8822ade7b1"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_sampling_job_summary",
+        "context_ids": [
+          "telemetry-ingress/conflict-b",
+          "telemetry-ingress/note",
+          "telemetry-ingress/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "telemetry-ingress/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 742.86,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "telemetry-ingress/conflict-b",
+          "telemetry-ingress/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 9.72,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "telemetry-ingress/another-organisation",
+      "source_family": "telemetry-ingress",
+      "split": "holdout",
+      "stratum": "acl",
+      "query": "What should we check first when the telemetry ingress shows accepted events without corresponding sample counts?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "SUPPORTED",
+      "expected_source": "telemetry-ingress/policy-a",
+      "expected_action": "compare_ingress_batch_ids",
+      "document_hashes": {
+        "telemetry-ingress/policy-a": "d0ff454e3eadb887b418d254754e3807dadee120289e2fe8478ad7278eff9ecb",
+        "telemetry-ingress/foreign-tenant": "4b406684a047712710cb1de06fbfd5757868a6b2f681eb1dcd27c9f72f2c99bf"
+      },
+      "existing_policy_state": "SUPPORTED",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "inspect_sampling_job_summary",
+        "context_ids": [
+          "telemetry-ingress/foreign-tenant",
+          "telemetry-ingress/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "telemetry-ingress/foreign-tenant"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 690.5,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "SUPPORTED",
+        "action": "compare_ingress_batch_ids",
+        "context_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "embedding_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "citation_ids": [
+          "telemetry-ingress/policy-a"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": true,
+        "elapsed_ms": 804.05,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "DRAFT_READY"
+      }
+    },
+    {
+      "case_id": "alert-routing/expired",
+      "source_family": "alert-routing",
+      "split": "holdout",
+      "stratum": "effective-time",
+      "query": "What should we check first when the alert routing fans out duplicate notifications for one service event?",
+      "effective_at": "2026-10-12T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "STALE",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "alert-routing/expiring-a": "c9816ec02a6594fbf9f81e40c7780b9d56a094727309836b042dd4208227f668"
+      },
+      "existing_policy_state": "STALE",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "compare_alert_fingerprints",
+        "context_ids": [
+          "alert-routing/expiring-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "alert-routing/expiring-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 646.53,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": true,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": true
+      },
+      "guarded": {
+        "state": "STALE",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 7.34,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "alert-routing/role-denial",
+      "source_family": "alert-routing",
+      "split": "holdout",
+      "stratum": "acl",
+      "query": "What should we check first when the alert routing fans out duplicate notifications for one service event?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "alert-routing/restricted-role": "5af14609d41bd9a8ddfb23b93a693a6efee47a9026c350b6a89383b1d9b34c0b",
+        "alert-routing/note": "fe4679e2ae19a66751df389cbff2f270535d54900e939293830facd712b92a4a"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "review_route_audit",
+        "context_ids": [
+          "alert-routing/note",
+          "alert-routing/restricted-role"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "alert-routing/restricted-role"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 586.97,
+        "acl_model_exposure": true,
+        "acl_output_leak": true,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 9.83,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "alert-routing/observation-without-policy",
+      "source_family": "alert-routing",
+      "split": "holdout",
+      "stratum": "insufficient",
+      "query": "What should we check first when the alert routing fans out duplicate notifications for one service event?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "INSUFFICIENT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "alert-routing/note": "fe4679e2ae19a66751df389cbff2f270535d54900e939293830facd712b92a4a"
+      },
+      "existing_policy_state": "INSUFFICIENT",
+      "plain": {
+        "state": "NO_ACTION",
+        "action": null,
+        "context_ids": [
+          "alert-routing/note"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 0.05,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "INSUFFICIENT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 36.87,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    },
+    {
+      "case_id": "alert-routing/ambiguous-first-step",
+      "source_family": "alert-routing",
+      "split": "holdout",
+      "stratum": "conflict",
+      "query": "What should we check first when the alert routing fans out duplicate notifications for one service event?",
+      "effective_at": "2026-10-10T12:00:00+00:00",
+      "known_as_of": "2026-10-16T12:00:00+00:00",
+      "expected_state": "CONFLICT",
+      "expected_source": null,
+      "expected_action": null,
+      "document_hashes": {
+        "alert-routing/policy-a": "c9816ec02a6594fbf9f81e40c7780b9d56a094727309836b042dd4208227f668",
+        "alert-routing/conflict-b": "3c0969ee1ecb899152625ad905e5b1c144913810ee3e2c23efcce94c4d55bb1b",
+        "alert-routing/note": "fe4679e2ae19a66751df389cbff2f270535d54900e939293830facd712b92a4a"
+      },
+      "existing_policy_state": "CONFLICT",
+      "plain": {
+        "state": "DRAFT_RETURNED",
+        "action": "review_route_audit",
+        "context_ids": [
+          "alert-routing/conflict-b",
+          "alert-routing/note",
+          "alert-routing/policy-a"
+        ],
+        "embedding_ids": [],
+        "citation_ids": [
+          "alert-routing/conflict-b"
+        ],
+        "exact_admissible_citation": true,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 580.3,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false
+      },
+      "guarded": {
+        "state": "CONFLICT",
+        "action": null,
+        "context_ids": [],
+        "embedding_ids": [],
+        "citation_ids": [
+          "alert-routing/conflict-b",
+          "alert-routing/policy-a"
+        ],
+        "exact_admissible_citation": false,
+        "correct_grounded_draft": false,
+        "elapsed_ms": 9.88,
+        "acl_model_exposure": false,
+        "acl_output_leak": false,
+        "effective_error": false,
+        "observation_error": false,
+        "supersession_error": false,
+        "temporal_model_exposure": false,
+        "model_status": "POLICY_BLOCKED"
+      }
+    }
+  ],
+  "metrics": {
+    "all": {
+      "plain": {
+        "acl_model_exposure": {
+          "numerator": 8,
+          "denominator": 8
+        },
+        "acl_output_leak": {
+          "numerator": 7,
+          "denominator": 8
+        },
+        "wrong_time_used": {
+          "numerator": 8,
+          "denominator": 14
+        },
+        "effective_time_error": {
+          "numerator": 5,
+          "denominator": 14
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "superseded_source_error": {
+          "numerator": 3,
+          "denominator": 14
+        },
+        "unusable_citation": {
+          "numerator": 15,
+          "denominator": 36
+        },
+        "conflict_block": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "any_draft_on_eligible": {
+          "numerator": 23,
+          "denominator": 23
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 15,
+          "denominator": 23
+        },
+        "draft_on_blocked": {
+          "numerator": 13,
+          "denominator": 17
+        },
+        "correct_policy_state": {
+          "numerator": 0,
+          "denominator": 40
+        },
+        "elapsed_ms": {
+          "p50": 554.59,
+          "p95": 846.82
+        }
+      },
+      "guarded": {
+        "acl_model_exposure": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "acl_output_leak": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "wrong_time_used": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "effective_time_error": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "superseded_source_error": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "unusable_citation": {
+          "numerator": 0,
+          "denominator": 23
+        },
+        "conflict_block": {
+          "numerator": 6,
+          "denominator": 6
+        },
+        "any_draft_on_eligible": {
+          "numerator": 23,
+          "denominator": 23
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 23,
+          "denominator": 23
+        },
+        "draft_on_blocked": {
+          "numerator": 0,
+          "denominator": 17
+        },
+        "correct_policy_state": {
+          "numerator": 40,
+          "denominator": 40
+        },
+        "elapsed_ms": {
+          "p50": 759.37,
+          "p95": 1316.33
+        }
+      }
+    },
+    "development": {
+      "plain": {
+        "acl_model_exposure": {
+          "numerator": 5,
+          "denominator": 5
+        },
+        "acl_output_leak": {
+          "numerator": 4,
+          "denominator": 5
+        },
+        "wrong_time_used": {
+          "numerator": 4,
+          "denominator": 8
+        },
+        "effective_time_error": {
+          "numerator": 3,
+          "denominator": 8
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "superseded_source_error": {
+          "numerator": 1,
+          "denominator": 8
+        },
+        "unusable_citation": {
+          "numerator": 8,
+          "denominator": 21
+        },
+        "conflict_block": {
+          "numerator": 0,
+          "denominator": 3
+        },
+        "any_draft_on_eligible": {
+          "numerator": 14,
+          "denominator": 14
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 10,
+          "denominator": 14
+        },
+        "draft_on_blocked": {
+          "numerator": 7,
+          "denominator": 10
+        },
+        "correct_policy_state": {
+          "numerator": 0,
+          "denominator": 24
+        },
+        "elapsed_ms": {
+          "p50": 506.41,
+          "p95": 713.28
+        }
+      },
+      "guarded": {
+        "acl_model_exposure": {
+          "numerator": 0,
+          "denominator": 5
+        },
+        "acl_output_leak": {
+          "numerator": 0,
+          "denominator": 5
+        },
+        "wrong_time_used": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "effective_time_error": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "superseded_source_error": {
+          "numerator": 0,
+          "denominator": 8
+        },
+        "unusable_citation": {
+          "numerator": 0,
+          "denominator": 14
+        },
+        "conflict_block": {
+          "numerator": 3,
+          "denominator": 3
+        },
+        "any_draft_on_eligible": {
+          "numerator": 14,
+          "denominator": 14
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 14,
+          "denominator": 14
+        },
+        "draft_on_blocked": {
+          "numerator": 0,
+          "denominator": 10
+        },
+        "correct_policy_state": {
+          "numerator": 24,
+          "denominator": 24
+        },
+        "elapsed_ms": {
+          "p50": 759.37,
+          "p95": 1316.33
+        }
+      }
+    },
+    "holdout": {
+      "plain": {
+        "acl_model_exposure": {
+          "numerator": 3,
+          "denominator": 3
+        },
+        "acl_output_leak": {
+          "numerator": 3,
+          "denominator": 3
+        },
+        "wrong_time_used": {
+          "numerator": 4,
+          "denominator": 6
+        },
+        "effective_time_error": {
+          "numerator": 2,
+          "denominator": 6
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "superseded_source_error": {
+          "numerator": 2,
+          "denominator": 6
+        },
+        "unusable_citation": {
+          "numerator": 7,
+          "denominator": 15
+        },
+        "conflict_block": {
+          "numerator": 0,
+          "denominator": 3
+        },
+        "any_draft_on_eligible": {
+          "numerator": 9,
+          "denominator": 9
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 5,
+          "denominator": 9
+        },
+        "draft_on_blocked": {
+          "numerator": 6,
+          "denominator": 7
+        },
+        "correct_policy_state": {
+          "numerator": 0,
+          "denominator": 16
+        },
+        "elapsed_ms": {
+          "p50": 580.3,
+          "p95": 1398.59
+        }
+      },
+      "guarded": {
+        "acl_model_exposure": {
+          "numerator": 0,
+          "denominator": 3
+        },
+        "acl_output_leak": {
+          "numerator": 0,
+          "denominator": 3
+        },
+        "wrong_time_used": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "effective_time_error": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "observation_time_error": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "superseded_source_error": {
+          "numerator": 0,
+          "denominator": 6
+        },
+        "unusable_citation": {
+          "numerator": 0,
+          "denominator": 9
+        },
+        "conflict_block": {
+          "numerator": 3,
+          "denominator": 3
+        },
+        "any_draft_on_eligible": {
+          "numerator": 9,
+          "denominator": 9
+        },
+        "correct_draft_on_eligible": {
+          "numerator": 9,
+          "denominator": 9
+        },
+        "draft_on_blocked": {
+          "numerator": 0,
+          "denominator": 7
+        },
+        "correct_policy_state": {
+          "numerator": 16,
+          "denominator": 16
+        },
+        "elapsed_ms": {
+          "p50": 721.76,
+          "p95": 1636.44
+        }
+      }
+    }
+  },
+  "guarded_invariant_violations": [],
+  "transport_failures": [],
+  "generation_parameters": {
+    "temperature": 0,
+    "seed": 42,
+    "max_tokens": 48
+  }
+}

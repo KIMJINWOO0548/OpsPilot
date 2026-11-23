@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 from collections import Counter
 
 from opspilot_x.eie import evaluate
@@ -60,3 +61,38 @@ def test_reports_acl_exposure_and_valid_answer_with_distinct_denominators(tmp_pa
     assert metrics["unusable_citation"] == {"numerator": 0, "denominator": 1}
     assert metrics["conflict_block"] == {"numerator": 1, "denominator": 1}
     assert metrics["correct_draft_on_eligible"] == {"numerator": 1, "denominator": 1}
+
+
+def test_embedding_trace_attributes_split_passages_to_the_actual_source(tmp_path):
+    cases = {case["id"]: case for case in load_cases()}
+    case = cases["artifact-mirror/another-team"]
+    shared_passage = "Shared synthetic reference about the mirror maintenance glossary."
+    additional_passages = " ".join(
+        f"Synthetic operations glossary entry {index} documents a separate maintenance term."
+        for index in range(1, 20)
+    )
+    documents = []
+    for document in case["documents"]:
+        text = " ".join((document.text, shared_passage, additional_passages))
+        documents.append(document.model_copy(update={
+            "text": text,
+            "checksum": hashlib.sha256(text.encode("utf8")).hexdigest(),
+        }))
+
+    class RecordingModel(SyntheticFirstSourceModel):
+        def __init__(self):
+            self.batches = []
+
+        def embed(self, texts):
+            self.batches.append(texts)
+            return super().embed(texts)
+
+    model = RecordingModel()
+    row = asyncio.run(run_case(
+        dict(case, documents=documents), model, tmp_path / "passages.sqlite",
+    ))
+
+    assert len(model.batches) > 1
+    assert any(shared_passage in batch for batch in model.batches)
+    assert row["guarded"]["embedding_ids"] == [case["expected_source"]]
+    assert not row["guarded"]["acl_model_exposure"]

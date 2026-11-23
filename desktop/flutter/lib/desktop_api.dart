@@ -159,6 +159,26 @@ final class DesktopApi {
   Future<Json> read(String path, [Map<String, String>? query]) =>
       _request(Uri(path: '/api/v1/$path', queryParameters: query));
 
+  Future<Json> readCitedSource(Json citation, String knownAsOf) async {
+    final original = await read('evidence/source', {
+      'evidence_id': field(citation, 'evidence_id'),
+      'known_as_of': knownAsOf,
+    });
+    final text = original['text'];
+    final matches = ['evidence_id', 'source_id', 'source_version', 'checksum']
+        .every((key) {
+          final expected = field(citation, key);
+          return expected.isNotEmpty && original[key] == expected;
+        });
+    if (!matches ||
+        text is! String ||
+        text.trim().isEmpty ||
+        sha256.convert(utf8.encode(text)).toString() != citation['checksum']) {
+      throw const FormatException('원문 버전 또는 해시가 달라졌습니다. 근거를 다시 확인하세요.');
+    }
+    return original;
+  }
+
   Future<Json> send(String path, Json data) =>
       _request(Uri(path: '/api/v1/$path'), data);
 

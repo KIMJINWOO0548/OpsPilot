@@ -38,6 +38,17 @@ def _regular_single_link(path: Path) -> bool:
     return path.is_file() and path.resolve() == path and path.stat().st_nlink == 1
 
 
+def _has_workspace_metadata(path: Path) -> bool:
+    with closing(sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True)) as connection:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='opspilot_workspace_metadata'"
+        ).fetchone():
+            return False
+        if connection.execute("SELECT version FROM opspilot_workspace_metadata").fetchall() != [(1,)]:
+            raise ValueError("Unsupported OpsPilot workspace database version")
+    return True
+
+
 def workspace_database(profile: Path) -> Path:
     profile = _local_path(profile)
     marker = profile / MARKER_NAME
@@ -49,12 +60,16 @@ def workspace_database(profile: Path) -> Path:
         sidecar = profile / (DATABASE_NAME + suffix)
         if os.path.lexists(sidecar) and not _regular_single_link(sidecar):
             raise ValueError("Workspace database sidecar must be a regular local file")
+    if not _has_workspace_metadata(db):
+        raise ValueError("Missing OpsPilot workspace database metadata")
     return db
 
 
 def is_workspace_database(path: str | Path) -> bool:
     path = Path(path)
     if path.name.casefold() != DATABASE_NAME or not os.path.lexists(path.parent / MARKER_NAME):
+        if path.is_file() and _has_workspace_metadata(path):
+            raise ValueError("Select the initialized OpsPilot workspace folder, or use workspace restore")
         return False
     if path.absolute() != workspace_database(path.parent):
         raise ValueError("Choose the workspace database")
@@ -93,11 +108,8 @@ def initialize_workspace(profile: Path) -> Path:
 def restore_workspace(backup: Path, profile: Path) -> Path:
     with _new_workspace(profile) as db:
         restore_database(backup, db)
-        with closing(sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)) as connection:
-            if not connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='opspilot_workspace_metadata'"
-            ).fetchone() or connection.execute("SELECT version FROM opspilot_workspace_metadata").fetchall() != [(1,)]:
-                raise ValueError("Choose a backup from a managed OpsPilot workspace")
+        if not _has_workspace_metadata(db):
+            raise ValueError("Choose a backup from a managed OpsPilot workspace")
     return workspace_database(profile)
 
 

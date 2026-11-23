@@ -23,7 +23,7 @@ from opspilot_x.auth import create_user
 from opspilot_x.eie import authorized, effective_at
 from opspilot_x.evidence_store import initialize_evidence
 from opspilot_x.hybrid import SOURCE_CHARS, TOP_K, HybridRag, ModelUnavailable
-from opspilot_x.local_models import LocalModels
+from opspilot_x.local_models import LocalModels, draft_generation_parameters
 from opspilot_x.schema import Actor, AnalyzeRequest, Evidence
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -172,20 +172,12 @@ def inspect_result(case, state, draft, context, embedded, duration, *, analysis=
 async def run_case(case, models, path):
     request = case["request"]
     context, embedded = set(), set()
-    text_owners = collections.defaultdict(set)
-    for doc in case["documents"]:
-        text_owners[doc.text[:SOURCE_CHARS]].add(doc.evidence_id)
-
-    def embed(texts):
-        for value in texts:
-            embedded.update(text_owners[value])
-        return models.embed(texts)
 
     def generate(query, sources):
         context.update(source["evidence_id"] for source in sources)
         return models.generate(query, sources)
 
-    hybrid = HybridRag(embed, generate)
+    hybrid = HybridRag(models.embed, generate, observe_embedding=embedded.update)
     app = create_app(path, hybrid=hybrid)
     initialize_evidence(path, case["documents"])
     password = secrets.token_urlsafe(24)
@@ -276,11 +268,13 @@ LABELS = {
 
 
 def markdown(report):
+    generation = report["generation_parameters"]
     lines = [
         "# OpsPilot-X · 합성 40건 비교 결과", "",
         "겹치지 않는 10개 IT 문서군에서 개발 24건과 홀드아웃 16건을 한 번씩 실행했다. "
         "동일한 Qwen 생성 모델, 구조 제약, 상위 4개 근거, 응답 한도로 비교했다. "
         "단순 RAG는 고정 합성 파일에서 단어 겹침으로 검색하며 권한·두 시점·충돌 검사를 적용하지 않는다.", "",
+        "모델 전달은 실제 임베딩 배치와 생성 입력에 담긴 근거 ID를 기록한다. "
         "시점 오류는 응답에 실린 유효 기간 위반, 관측 전 버전, 대체된 버전의 합집합이다. "
         "서로 다른 지표의 분자는 겹칠 수 있다. 인용 지표는 실제 조치가 반환된 응답만 분모에 넣고, "
         "정답률과 초안 제시율은 모든 적격 사례를 분모에 넣는다. "
@@ -307,7 +301,8 @@ def markdown(report):
         "- 환경: " + report["platform"],
         "- 모델: llama.cpp b12649, Qwen2.5-0.5B-Instruct Q4_K_M, Qwen3-Embedding-0.6B Q8_0. "
         "모델·런타임 해시는 JSON에 기록했다.",
-        "- 생성 계약: temperature 0, seed 42, 최대 192 토큰. 실제 토큰 수는 집계하지 않았다.",
+        f"- 생성 계약: temperature {generation['temperature']}, seed {generation['seed']}, "
+        f"최대 {generation['max_tokens']} 토큰. 실제 토큰 수는 집계하지 않았다.",
         "- 호출 비용: 로컬 CPU에서 유료 API 호출 0회.",
         "- 기존 결정적 판정과 실제 하이브리드 판정은 JSON의 각 사례에 함께 기록했다.",
         "",
@@ -349,6 +344,7 @@ def main():
         )},
         "platform": f"{platform.platform()} / {platform.processor()}",
         "model_hashes": model_hashes, "paid_api_calls": 0, "decoded_token_counts_measured": False,
+        "generation_parameters": draft_generation_parameters(),
         "case_count": len(rows), "case_results": rows, "metrics": {},
     }
     for subset in ("all", "development", "holdout"):

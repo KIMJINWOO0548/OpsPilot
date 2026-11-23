@@ -165,6 +165,10 @@ def _fingerprint(request: AnalyzeRequest, result) -> str:
     return hashlib.sha256(_serialize(payload).encode()).hexdigest()
 
 
+def _source_bytes_match(source) -> bool:
+    return hashlib.sha256(source.text.encode()).hexdigest() == source.checksum
+
+
 def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = None) -> FastAPI:
     path = str(db_path or os.getenv("OPSPILOT_DB", "./opspilot_demo.sqlite3"))
     managed_workspace = is_workspace_database(path)
@@ -379,6 +383,55 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
         matches = row["action"] == snapshot.recommended_action and _fingerprint(stored, snapshot) == row["fingerprint"]
         return stored, request, snapshot, matches
 
+    def approved_evidence(db, row, actor, stored, details):
+        if not isinstance(details, dict) or details.get("fingerprint") != row["fingerprint"]:
+            return None
+        try:
+            pins = [Citation.model_validate(value) for value in details["citations"]]
+            if not pins or len({pin.evidence_id for pin in pins}) != len(pins):
+                return None
+            originals = []
+            for pin in pins:
+                sources = authorized_evidence(
+                    path, actor, asset_id=stored.asset_id, known_as_of=stored.known_as_of,
+                    connection=db, evidence_id=pin.evidence_id,
+                )
+                if not sources or not _source_bytes_match(sources[0]):
+                    return None
+                originals.append(sources[0])
+        except (KeyError, TypeError, ValueError):
+            return None
+        # Recheck policy and ACL on the originals without including later imports.
+        snapshot = evaluate(stored.model_copy(update={"actor": actor}), seed=originals)
+        if (snapshot.citations != pins or snapshot.recommended_action != row["action"]
+                or _fingerprint(stored, snapshot) != row["fingerprint"]):
+            return None
+        return snapshot, originals
+
+    def readable_evidence(db, row, actor, *, require_approval=False):
+        if row["state"] in ("SUCCEEDED", "UNKNOWN_RECONCILE"):
+            stored = AnalyzeRequest.model_validate_json(row["request_json"])
+            approval = db.execute(
+                "SELECT data FROM audit LEFT JOIN audit_details USING(event_id) "
+                "WHERE proposal_id=? AND kind='APPROVED' AND actor=? "
+                "ORDER BY audit.rowid DESC LIMIT 1",
+                (row["id"], row["decided_by"]),
+            ).fetchone()
+            if approval is not None and approval["data"] is not None:
+                try:
+                    details = json.loads(approval["data"])
+                except (ValueError, TypeError):
+                    return stored, None
+                pinned = approved_evidence(db, row, actor, stored, details)
+                return stored, pinned[0] if pinned is not None else None
+            if require_approval or db.execute(
+                "SELECT 1 FROM proposal_reports WHERE proposal_id=?", (row["id"],),
+            ).fetchone():
+                return stored, None
+            # Legacy mock receipts can predate recorded approval citations.
+        stored, _, snapshot, matches = evidence_snapshot(db, row, actor)
+        return stored, snapshot if matches else None
+
     def require_current_evidence(db, row, actor):
         _, request, snapshot, matches = evidence_snapshot(db, row, actor)
         if not matches or _latest_evidence_changed(request, snapshot, db):
@@ -522,7 +575,7 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
             sources = authorized_evidence(
                 path, actor, known_as_of=cutoff, connection=db, evidence_id=evidence_id,
             )
-            if not sources:
+            if not sources or not _source_bytes_match(sources[0]):
                 raise HTTPException(404, "Source unavailable")
             return sources[0].model_dump(include=SOURCE_FIELDS)
 
@@ -596,9 +649,9 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
                         raise HTTPException(409, "Draft request key was already used for different input")
                     row = row_or_404(db, prior["proposal_id"])
                     readable(row, actor)
-                    _, _, snapshot, matches = evidence_snapshot(db, row, actor)
+                    _, snapshot = readable_evidence(db, row, actor)
                     return {"proposal_id": row["id"], "state": row["state"], "action": row["action"],
-                            "fingerprint": row["fingerprint"], "citations": snapshot.citations if matches else []}
+                            "fingerprint": row["fingerprint"], "citations": snapshot.citations if snapshot is not None else []}
                 if request_key.startswith(DRAFT_INTENT_PREFIX):
                     intent = draft_intent(db, owner_scope)
                     if intent is None or intent[0] != request_key:
@@ -636,10 +689,14 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
             row = row_or_404(db, proposal_id)
             readable(row, actor)
             receipt = operation_receipt(db, proposal_id)
-            stored, request, snapshot, matches = evidence_snapshot(db, row, actor)
-            version, assignee, generation = review_state(db, proposal_id)
-            reviewable = matches and not _latest_evidence_changed(request, snapshot, db)
             state = row["state"]
+            if state in ("SUCCEEDED", "UNKNOWN_RECONCILE"):
+                stored, snapshot = readable_evidence(db, row, actor)
+                matches = reviewable = snapshot is not None
+            else:
+                stored, request, snapshot, matches = evidence_snapshot(db, row, actor)
+                reviewable = matches and not _latest_evidence_changed(request, snapshot, db)
+            version, assignee, generation = review_state(db, proposal_id)
             valid = state == "APPROVED" and approval_valid(db, row, generation)
             eligible = eligible_approver(row, actor)
             assigned = assignee or row["decided_by"]
@@ -846,7 +903,7 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
                 raise HTTPException(409, "Confirm the execution receipt before downloading")
             if receipt["idempotency_key"] != operation_key(proposal_id, "pdf"):
                 raise HTTPException(404, "No PDF report for this proposal")
-            if not receipt_matches(db, receipt, row) or not evidence_snapshot(db, row, actor)[3]:
+            if not receipt_matches(db, receipt, row) or readable_evidence(db, row, actor, require_approval=True)[1] is None:
                 raise HTTPException(409, "Report integrity or evidence access could not be confirmed")
             report = report_row(db, proposal_id)
             return Response(report["document"], media_type="application/pdf", headers={
@@ -880,10 +937,10 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
             items = []
             for row in db.execute(query, params):
                 item = {"proposal_id": row["id"], "state": row["state"]}
-                stored, _, _, matches = evidence_snapshot(db, row, actor)
-                if review_queue and not matches:
+                stored, snapshot = readable_evidence(db, row, actor)
+                if review_queue and snapshot is None:
                     continue
-                if matches:
+                if snapshot is not None:
                     item.update(action=row["action"], created_at=row["created_at"], owner_user=row["owner_user"],
                                 decided_by=row["decided_by"], asset_id=stored.asset_id, fingerprint=row["fingerprint"])
                     if review_queue:
@@ -898,9 +955,9 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
             actor = live_actor(db, http, actor)
             proposal_row = row_or_404(db, proposal_id)
             readable(proposal_row, actor)
-            if not evidence_snapshot(db, proposal_row, actor)[3]:
+            stored, snapshot = readable_evidence(db, proposal_row, actor)
+            if snapshot is None:
                 return {"items": []}
-            visible = {source.evidence_id: source for source in authorized_evidence(path, actor, connection=db)}
             rows = db.execute("SELECT kind,actor,logged_at,data FROM audit "
                               "LEFT JOIN audit_details USING(event_id) WHERE proposal_id=? "
                               "ORDER BY logged_at,audit.rowid", (proposal_id,))
@@ -909,16 +966,19 @@ def create_app(db_path: str | Path | None = None, *, hybrid: HybridRag | None = 
                 item = dict(row)
                 data = item.pop("data")
                 if data is not None:
-                    item["details"] = json.loads(data)
-                    citations = item["details"].pop("citations", [])
-                    if item["kind"] == "APPROVED":
-                        item["approved_documents"] = []
-                        for citation in citations:
-                            source = visible.get(citation["evidence_id"])
-                            if (source is not None and source.source_version == citation["source_version"]
-                                    and source.checksum == citation["checksum"]
-                                    and hashlib.sha256(source.text.encode()).hexdigest() == citation["checksum"]):
-                                item["approved_documents"].append({**citation, "text": source.text})
+                    try:
+                        details = json.loads(data)
+                    except (ValueError, TypeError):
+                        details = None
+                    if isinstance(details, dict):
+                        if item["kind"] == "APPROVED":
+                            pinned = approved_evidence(db, proposal_row, actor, stored, details)
+                            item["approved_documents"] = [
+                                {**citation.model_dump(), "text": original.text}
+                                for citation, original in zip(pinned[0].citations, pinned[1], strict=True)
+                            ] if pinned is not None else []
+                        details.pop("citations", None)
+                        item["details"] = details
                 items.append(item)
             return {"items": items}
 
