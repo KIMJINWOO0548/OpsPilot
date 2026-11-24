@@ -4,6 +4,7 @@ The starter kit has original reference implementation and test fixtures. It does
 
 - Python app runtime: FastAPI, Starlette, Pydantic, Uvicorn; review current dependency licenses before any public distribution.
 - Tests/development: Pytest, HTTPX, Ruff; review their current license terms.
+- PDF report font: Nanum Gothic Regular, copyright 2010 NHN Corporation, SIL Open Font License 1.1. The original font, notice, and font map provenance are in [the font folder](src/opspilot_x/fonts/README.md).
 - Research candidates not included as dependencies: LangGraph, pgvector, GraphRAG, SURE-RAG, EnterpriseRAG-Bench, FEVER, Langflow, etc. See `docs/research/PRIOR_ART_CHECKLIST.md`.
 - The v2.0 plan includes URLs for reference; external dataset download, copyright terms, model weights and verification are pending.
 - Choose a license for the user's own repository **before** releasing on GitHub. No license decision is imposed by this kit.
