@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
@@ -8,6 +9,8 @@ import httpx
 
 from conftest import PASSWORD, seed_users
 from opspilot_x.api import create_app
+from opspilot_x.eie import load_seed
+from opspilot_x.workspace import import_workspace_evidence, initialize_workspace
 
 
 async def sign_in(client, user):
@@ -18,7 +21,16 @@ async def sign_in(client, user):
 
 def test_pdf_approval_loss_restart_integrity_and_no_duplicate(tmp_path):
     async def exercise():
-        path = tmp_path / "reports.sqlite3"
+        profile = tmp_path / "workspace"
+        path = initialize_workspace(profile)
+        source = next(row for row in load_seed() if row.evidence_id == "SOP-A103-v2")
+        action = "센서 진단 후 냉각수 압력 확인"
+        locator = "합성 장비 SOP 냉각수 점검 위치 (2절)"
+        manifest = tmp_path / "synthetic-source.json"
+        manifest.write_text(json.dumps([{
+            **source.model_dump(mode="json"), "value": action, "locator": locator, "supersedes": [],
+        }], ensure_ascii=False), encoding="utf-8")
+        assert import_workspace_evidence(profile, manifest) == 1
         seed_users(path)
         transport = httpx.ASGITransport(app=create_app(path))
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -61,6 +73,8 @@ def test_pdf_approval_loss_restart_integrity_and_no_duplicate(tmp_path):
             assert saved.status_code == 200 and saved.headers["content-type"] == "application/pdf"
             assert saved.content == original and original.startswith(b"%PDF-")
             assert saved.headers["etag"] == '"' + hashlib.sha256(original).hexdigest() + '"'
+            assert b"/FontFile2 " in original and b"/ToUnicode " in original
+            assert rb"\\uc13c" not in original
             await sign_in(client, "other-tenant")
             assert (await client.get(route + "/report")).status_code == 404
             with closing(sqlite3.connect(path)) as db, db:

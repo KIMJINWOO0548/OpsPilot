@@ -2,7 +2,7 @@
 
 **운영 규정의 권한·버전·충돌을 확인하고, 독립 승인으로 확정한 조치를 PDF와 영수증으로 남기는 AI 운영 콘솔입니다.** IT 운영팀이 “지금 이 조치를 해도 되는가, 당시 근거는 무엇이었는가”를 한 흐름에서 검토할 수 있습니다.
 
-[90초 시연](docs/PORTFOLIO_DEMO.md) · [합성 승인 PDF](docs/portfolio/approved-report-sample.pdf) · [Windows 실행](#실행하기) · [근거 검증 계약](docs/architecture/EIE_CONTRACT.md)
+[Windows 다운로드](https://github.com/KIMJINWOO0548/OpsPilot/releases/latest) · [90초 시연](docs/PORTFOLIO_DEMO.md) · [합성 승인 PDF](docs/portfolio/approved-report-sample.pdf) · [Windows 실행](#실행하기) · [근거 검증 계약](docs/architecture/EIE_CONTRACT.md)
 
 ![OpsPilot-X Windows 승인함. 왼쪽에 요청 목록, 중앙에 요청 당시와 현재의 근거, 하단에 승인 명령이 표시된다.](docs/portfolio/windows-review.png)
 

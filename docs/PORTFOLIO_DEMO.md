@@ -10,7 +10,7 @@
 | 49–64초 | 독립 검토자로 로그인합니다. 요청 당시 원문과 현재 근거를 검토하고 승인합니다. 응답 유실 시연을 선택합니다. |
 | 64–90초 | **실행 결과 확인**으로 기존 영수증을 조회합니다. PDF를 저장하고 승인 근거, 출처 버전과 영수증을 대조합니다. |
 
-[Windows 승인 화면](portfolio/windows-review.png) · [시연에서 생성한 PDF](portfolio/approved-report-sample.pdf)
+[Windows 승인 화면](portfolio/windows-review.png) · [한글 조치와 출처 위치가 포함된 합성 승인 PDF](portfolio/approved-report-sample.pdf)
 
 모델 없이 서버 흐름을 확인할 때는 `python scripts/smoke_demo.py`를 실행합니다. 로컬 Qwen 두 모델에서 원문 인용까지 확인하려면 `python -m scripts.portfolio_demo --output <새-폴더> --embedding-port <임베딩-포트> --chat-port <생성-포트>`를 실행합니다. 포트는 실행 중인 로컬 모델 서버에 맞춥니다. [모델 준비·재실행 절차](../evaluation/pilot40.ko.md)
 
@@ -18,4 +18,4 @@
 
 - 감자 PC의 Windows x64 포터블 번들에서 합성 문서 31건을 사용했습니다. 대체 검토자가 입력한 인계 사유가 감사에 남았고, 응답 유실 후 같은 영수증을 열었습니다. 재시작 전후 PDF 두 파일의 SHA-256이 일치했습니다.
 - 소스 검사와 Windows x64 빌드를 통과했습니다. Windows 전체 pytest는 294건 통과, 4건 건너뜀, 소켓 초기화 `WinError 10014`로 실패 14건과 오류 5건을 기록했습니다. 실패·오류 19건은 별도 재실행에서 모두 통과했습니다.
-- 한글 조치명과 출처 위치는 현재 PDF에서 이스케이프 문자열로 표시됩니다. 공개 GitHub CI와 조직 공유 환경은 이번 로컬 검증 범위 밖입니다.
+- 새 합성 승인 PDF의 한글 조치명과 출처 위치를 Poppler에서 렌더링하고 독립 파서로 텍스트를 대조했습니다. 앱 재시작과 재시도 후에도 영수증과 PDF 바이트가 동일했습니다. 조직 공유 환경은 이번 로컬 검증 범위 밖입니다.

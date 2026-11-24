@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
+from hashlib import sha256
 import re
+from unicodedata import normalize
+from zlib import decompress
 
 import pytest
 
@@ -57,13 +60,81 @@ def test_report_keeps_more_sources_on_following_pages_and_escapes_strings(report
         for index in range(8)
     ]
     report_inputs["snapshot"] = snapshot.model_copy(update={"citations": citations})
-    report_inputs["approver"] = "\ud14c\uc2a4\ud2b8"
+    report_inputs["approver"] = "operator\nendobj"
     document = render_approved_report(**report_inputs)
     assert b"/Count 2" in document
     assert b"Page 1 of 2" in document and b"Page 2 of 2" in document
     assert b"synthetic-source-07" in document
-    assert rb"a\(b\)\\\\c" in document
-    assert rb"\\ud14c\\uc2a4\\ud2b8" in document
+    assert rb"a\(b\)\\c" in document
+    assert rb"operator\\nendobj" in document
+
+
+def _pdf_object_stream(document: bytes, object_id: bytes) -> bytes:
+    stream = re.search(
+        rb"\n" + object_id + rb" 0 obj\n<< /Length (\d+)([^\n]*) >>\nstream\n",
+        document,
+    )
+    start, length = stream.end(), int(stream.group(1))
+    data = document[start:start + length]
+    return decompress(data) if b"/FlateDecode" in stream.group(2) else data
+
+
+def _unicode_lines(document: bytes) -> list[str]:
+    cmap_id = re.search(rb"/ToUnicode (\d+) 0 R", document).group(1)
+    lookup = {cid: chr(int(code, 16)) for cid, code in re.findall(
+        rb"(?m)^<([0-9A-F]{4})> <([0-9A-F]{4})>$", _pdf_object_stream(document, cmap_id)
+    )}
+    pages = re.findall(rb"/Contents (\d+) 0 R", document)
+    lines = (
+        line for page in pages for line in re.findall(
+            rb"/F3 9\.5 Tf [\d.]+ \d+ Td <([0-9A-F]+)> Tj", _pdf_object_stream(document, page)
+        )
+    )
+    return [
+        "".join(lookup[line[index:index + 4]] for index in range(0, len(line), 4))
+        for line in lines
+    ]
+
+
+def test_report_maps_hangul_to_the_embedded_font_and_selectable_text(report_inputs):
+    snapshot = report_inputs["snapshot"]
+    action = "센서 진단 후 냉각수 압력 확인"
+    locator = "합성 장비 SOP § 냉각수 점검 위치 (2절)"
+    citation = snapshot.citations[0].model_copy(update={"locator": locator})
+    report_inputs["snapshot"] = snapshot.model_copy(update={
+        "recommended_action": normalize("NFD", action),
+        "citations": [citation],
+    })
+    document = render_approved_report(**report_inputs)
+    assert document == render_approved_report(**report_inputs)
+    assert len(document) < MAX_REPORT_BYTES
+    assert b"/Subtype /CIDFontType2" in document
+    font = re.search(rb"/FontFile2 (\d+) 0 R >>", document).group(1)
+    assert sha256(_pdf_object_stream(document, font)).hexdigest() == (
+        "76f45ef4a6bcff344c837c95a7dcc26e017e38b5846d5ae0cdcb5b86be2e2d31"
+    )
+    decoded = _unicode_lines(document)
+    assert action in decoded
+    assert locator in decoded
+    assert rb"\\uc13c" not in document
+
+
+def test_report_keeps_long_mixed_locators_within_size_limit(report_inputs):
+    snapshot = report_inputs["snapshot"]
+    locator = "누설 감지 경보 상태 / 열교환기 센서 위치 (2절) " * 14
+    citations = [
+        snapshot.citations[0].model_copy(update={
+            "evidence_id": f"synthetic-source-{index:03}",
+            "locator": locator + f"마지막 위치 {index:03}",
+        })
+        for index in range(250)
+    ]
+    document = render_approved_report(**{
+        **report_inputs, "snapshot": snapshot.model_copy(update={"citations": citations}),
+    })
+    assert len(document) < MAX_REPORT_BYTES
+    assert len(re.findall(rb"/Contents \d+ 0 R", document)) > 1
+    assert "마지막 위치 249" in " ".join(_unicode_lines(document))
 
 
 def test_rejects_unsupported_or_oversized_report(report_inputs):
