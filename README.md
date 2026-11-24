@@ -4,9 +4,9 @@
 
 [Windows 다운로드](https://github.com/KIMJINWOO0548/OpsPilot/releases/latest) · [90초 시연](docs/PORTFOLIO_DEMO.md) · [합성 승인 PDF](docs/portfolio/approved-report-sample.pdf) · [Windows 실행](#실행하기) · [근거 검증 계약](docs/architecture/EIE_CONTRACT.md)
 
-![OpsPilot-X Windows 승인함. 왼쪽에 요청 목록, 중앙에 요청 당시와 현재의 근거, 하단에 승인 명령이 표시된다.](docs/portfolio/windows-review.png)
+![OpsPilot-X Windows 15초 시연. SOP 원문 확인, 독립 승인, 앱 재시작 후 영수증 복구, 한글 PDF 저장 순서](docs/portfolio/opspilot-windows-demo.gif)
 
-*Windows 배포 후보 화면. 가상의 운영 문서와 계정으로 촬영했습니다.*
+*Windows 포터블 앱에서 합성 요청 한 건을 검토하고 복구한 화면을 15초로 편집했습니다.*
 
 ## 무엇을 할 수 있나요?
 
